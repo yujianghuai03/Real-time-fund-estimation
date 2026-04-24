@@ -1,0 +1,42 @@
+spring:
+  application:
+    name: yujianghuai-gateway
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 127.0.0.1:8848
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+      routes:
+        - id: yujianghuai-auth
+          uri: lb://yujianghuai-auth
+          predicates:
+            - Path=/auth/**,/oauth2/**,/.well-known/**,/token/**
+        - id: yujianghuai-service
+          uri: lb://yujianghuai-service
+          predicates:
+            - Path=/api/**
+        - id: yujianghuai-admin
+          uri: lb://yujianghuai-admin
+          predicates:
+            - Path=/admin-api/**
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: http://127.0.0.1:9100/oauth2/jwks
+
+server:
+  port: 9000
+
+gateway:
+  auth:
+    ignore-paths:
+      - /auth/**
+      - /oauth2/**
+      - /.well-known/**
+      - /token/check_token
+      - /actuator/**

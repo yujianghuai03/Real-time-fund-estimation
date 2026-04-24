@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: yujianghuai-nacos
+
+server:
+  port: 8847
+
+nacos:
+  manager:
+    auto-start: true
+    home: ${NACOS_HOME:}
+    mode: standalone
+    port: 8848
+    database:
+      enabled: true
+      platform: mysql
+      urls:
+        - jdbc:mysql://127.0.0.1:3306/nacos_config?characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useUnicode=true&useSSL=false&serverTimezone=Asia/Shanghai
+      username: root
+      password: 123456
+      pool:
+        connectionTimeout: 30000
+        maximumPoolSize: 20
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

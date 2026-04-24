@@ -1,0 +1,60 @@
+spring:
+  application:
+    name: yujianghuai-boot
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://127.0.0.1:3306/yujianghuai?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
+    username: root
+    password: 123456
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      database: 0
+#  rabbitmq:
+#    host: 127.0.0.1
+#    port: 5672
+#    username: guest
+#    password: guest
+
+server:
+  port: 8080
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      id-type: auto
+
+auth:
+  secret: change-me
+  token-expire-seconds: 7200
+  demo-user:
+    username: admin
+    password: 123456
+    roles:
+      - ADMIN
+  oauth2:
+    issuer: http://127.0.0.1:8080
+    client-id: yujianghuai-client
+    client-secret: yujianghuai-secret
+    redirect-uris:
+      - http://127.0.0.1:8080/login/oauth2/code/yujianghuai
+    scopes:
+      - openid
+      - profile
+      - api.read
+      - api.write
+    access-token-ttl: 2h
+    refresh-token-ttl: 7d
+
+app:
+  tenant:
+    header-name: TENANT-ID
+    ignore-paths:
+      - /auth/**
+      - /actuator/**
+      - /error
+    ignore-tables:
+      - sys_tenant
