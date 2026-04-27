@@ -1,247 +1,311 @@
 <template>
-  <main class="fund-desk">
-    <header class="fund-nav">
-      <div class="brand-block">
-        <router-link class="brand" to="/">
-          <span class="brand-mark">Y</span>
-          <span>基金实时预估</span>
-        </router-link>
-        <p class="brand-subtitle">实时查看自选基金估值、盈亏表现和持仓变化。</p>
-      </div>
+  <main class="fund-workbench">
+    <header class="app-header">
+      <router-link class="brand" to="/" aria-label="基金实时预估首页">
+        <span class="brand-mark">Y</span>
+        <span>
+          <strong>基金实时预估</strong>
+          <small>持仓估值工作台</small>
+        </span>
+      </router-link>
 
-      <div class="nav-actions">
-        <el-tooltip content="GitHub 仓库" placement="bottom">
-          <a class="icon-action repo-icon-button" :href="repositoryUrl" target="_blank" rel="noreferrer" aria-label="GitHub 仓库">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path
-                d="M12 2C6.48 2 2 6.58 2 12.23c0 4.52 2.87 8.35 6.84 9.71.5.09.68-.22.68-.49 0-.24-.01-1.04-.01-1.88-2.78.62-3.37-1.21-3.37-1.21-.45-1.18-1.11-1.49-1.11-1.49-.91-.64.07-.63.07-.63 1 .08 1.53 1.05 1.53 1.05.9 1.57 2.35 1.12 2.92.85.09-.67.35-1.12.63-1.37-2.22-.26-4.55-1.14-4.55-5.06 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.31.1-2.72 0 0 .84-.28 2.75 1.05a9.3 9.3 0 0 1 5 0c1.9-1.33 2.74-1.05 2.74-1.05.55 1.41.2 2.46.1 2.72.64.72 1.03 1.63 1.03 2.75 0 3.93-2.33 4.79-4.56 5.05.36.32.68.95.68 1.92 0 1.39-.01 2.5-.01 2.84 0 .27.18.58.69.48A10.26 10.26 0 0 0 22 12.23C22 6.58 17.52 2 12 2Z"
-              />
-            </svg>
-          </a>
+      <nav class="top-nav" aria-label="页面导航">
+        <button
+          v-for="item in navItems"
+          :key="item.key"
+          :class="{ active: activeSection === item.key }"
+          type="button"
+          @click="scrollToSection(item.key)"
+        >
+          {{ item.label }}
+        </button>
+      </nav>
+
+      <div class="header-actions">
+        <el-tag :type="marketOpen ? 'success' : 'info'" effect="plain">
+          {{ marketOpen ? '交易时段' : '非交易时段' }}
+        </el-tag>
+        <span class="last-refresh">最后刷新 {{ lastUpdated || '-' }}</span>
+        <el-tooltip content="手动刷新数据" placement="bottom">
+          <el-button :loading="refreshing" :icon="RefreshRight" circle aria-label="手动刷新数据" @click="loadWatchlist(true)" />
         </el-tooltip>
-
-        <el-tooltip content="刷新数据" placement="bottom">
-          <el-button class="icon-action refresh-icon-button" type="primary" circle :loading="refreshing" @click="loadWatchlist">
-            <el-icon><RefreshRight /></el-icon>
-          </el-button>
-        </el-tooltip>
-
         <el-popover placement="bottom-end" trigger="hover" :width="300">
           <template #reference>
             <button class="user-trigger" type="button">
-              <el-avatar class="user-avatar" :size="32">{{ avatarText }}</el-avatar>
-              <span class="user-trigger-copy">
-                <span class="user-caption">当前用户</span>
+              <el-avatar :size="32">{{ avatarText }}</el-avatar>
+              <span>
+                <small>{{ authenticated ? '当前用户' : '未登录' }}</small>
                 <strong>{{ displayName }}</strong>
               </span>
-              <el-icon class="user-trigger-arrow"><ArrowDown /></el-icon>
+              <el-icon><ArrowDown /></el-icon>
             </button>
           </template>
 
           <div class="user-popover">
             <div class="user-popover-head">
               <strong>{{ displayName }}</strong>
-              <span class="user-role-badge">{{ primaryRoleLabel }}</span>
+              <el-tag size="small">{{ primaryRoleLabel }}</el-tag>
             </div>
-
             <template v-if="authenticated">
-              <div class="user-info-list">
-                <div class="user-info-item">
-                  <span class="user-info-label">角色</span>
-                  <strong>{{ displayMeta }}</strong>
-                </div>
-                <div class="user-info-item">
-                  <span class="user-info-label">租户</span>
-                  <strong>{{ tenantLabel }}</strong>
-                </div>
-              </div>
-              <div class="user-popover-actions">
-                <el-button type="danger" plain round @click="handleLogout">退出登录</el-button>
-              </div>
+              <p>角色：{{ displayMeta }}</p>
+              <p>租户：{{ tenantLabel }}</p>
+              <el-button type="danger" plain @click="handleLogout">退出登录</el-button>
             </template>
-
             <template v-else>
-              <div class="user-info-empty">
-                <p>当前还没有登录，登录后可查看角色和租户信息。</p>
-                <el-button type="primary" round @click="goLogin">前往登录</el-button>
-              </div>
+              <p>登录后可保存自选基金、维护持有金额并查看个人估值。</p>
+              <el-button type="primary" @click="goLogin">前往登录</el-button>
             </template>
           </div>
         </el-popover>
       </div>
     </header>
 
-    <section class="fund-hero">
-      <div class="hero-copy">
-        <span class="eyebrow">基金实时预估</span>
-        <h1>我的基金<br /><span>实时预估</span></h1>
-        <p>
-          前端负责展示数据，后端会保存当前用户的自选基金，并在打开页面或每 10 秒刷新时实时拉取估值数据，帮助你更直观地观察组合波动。
-        </p>
-        <div class="hero-actions">
-          <el-button type="primary" size="large" round @click="scrollToSection('watchlist')">查看自选基金</el-button>
-          <el-button size="large" round plain @click="authenticated ? openFeedback() : goLogin()">
-            {{ authenticated ? '点此提交反馈' : '先去登录' }}
-          </el-button>
-        </div>
+    <section class="page-toolbar">
+      <div>
+        <p class="eyebrow">实时估值</p>
+        <h1>我的基金工作台</h1>
+        <p>集中查看组合盈亏、数据新鲜度和自选持仓，自动刷新会在页面隐藏时暂停。</p>
       </div>
-
-      <aside class="quote-board">
-        <div class="quote-topline">
-          <span>今日预估盈亏</span>
-          <strong :class="totalProfit >= 0 ? 'up' : 'down'">{{ formatMoney(totalProfit) }}</strong>
-        </div>
-        <div class="nav-estimate">
-          <span>预估总市值</span>
-          <b>{{ formatMoney(totalMarketValue) }}</b>
-        </div>
-        <div class="summary-grid">
-          <div>
-            <span>持有金额</span>
-            <b>{{ formatMoney(totalHolding) }}</b>
-          </div>
-          <div>
-            <span>组合涨跌</span>
-            <b :class="portfolioChange >= 0 ? 'up' : 'down'">{{ formatPercent(portfolioChange) }}</b>
-          </div>
-        </div>
-        <div class="quote-meta">
-          <span>更新时间 {{ lastUpdated || '-' }}</span>
-          <span>自动刷新：10 秒</span>
-        </div>
-      </aside>
+      <div class="toolbar-controls">
+        <el-segmented v-model="refreshMode" :options="refreshModeOptions" />
+        <el-button :icon="Link" plain @click="openRepository">代码仓库</el-button>
+      </div>
     </section>
 
-    <section id="watchlist" class="watch-card">
-      <div class="watch-toolbar">
+    <el-alert
+      v-if="unauthorized"
+      class="status-alert"
+      title="请先登录后查看当前用户保存的自选基金。"
+      type="warning"
+      show-icon
+      :closable="false"
+    />
+
+    <el-alert
+      v-else-if="loadError"
+      class="status-alert"
+      :title="loadError"
+      type="error"
+      show-icon
+      :closable="false"
+    >
+      <template #default>
+        <el-button size="small" type="danger" plain @click="loadWatchlist(true)">重新加载</el-button>
+      </template>
+    </el-alert>
+
+    <section id="overview" class="summary-grid" aria-label="组合摘要">
+      <article v-for="metric in metrics" :key="metric.label" class="metric-card">
+        <span>{{ metric.label }}</span>
+        <strong :class="metric.tone">{{ metric.value }}</strong>
+        <small>{{ metric.hint }}</small>
+      </article>
+    </section>
+
+    <section class="refresh-panel" aria-label="刷新状态">
+      <div>
+        <el-icon :class="{ spinning: refreshing }"><Refresh /></el-icon>
+        <strong>{{ refreshing ? '正在刷新估值' : '估值数据已就绪' }}</strong>
+        <span>{{ refreshStatusText }}</span>
+      </div>
+      <el-tag :type="documentVisible ? 'success' : 'info'" effect="plain">
+        {{ documentVisible ? '页面可见，轮询启用' : '页面隐藏，轮询暂停' }}
+      </el-tag>
+    </section>
+
+    <section id="portfolio" class="workspace-section">
+      <div class="section-head">
         <div>
-          <h2>用户自选基金</h2>
-          <p>通过后端搜索基金并加入当前账号，可维护持有金额，系统会实时计算预估盈亏和市值。</p>
+          <h2>自选持仓</h2>
+          <p>搜索基金并录入持有金额，表格会根据实时估值计算预估盈亏。</p>
         </div>
-        <div class="fund-search">
-          <el-select
-            v-model="selectedCode"
-            filterable
-            remote
-            clearable
-            reserve-keyword
-            placeholder="搜索基金代码或名称"
-            :remote-method="remoteSearch"
-            :loading="searching"
-            style="width: 320px"
+        <el-button :icon="Setting" plain @click="settingsVisible = true">页面设置</el-button>
+      </div>
+
+      <div class="watch-toolbar">
+        <el-select
+          v-model="selectedCode"
+          filterable
+          remote
+          clearable
+          reserve-keyword
+          placeholder="搜索基金代码或名称"
+          :remote-method="remoteSearch"
+          :loading="searching"
+        >
+          <el-option
+            v-for="item in searchOptions"
+            :key="item.code"
+            :label="`${item.code} ${item.name}`"
+            :value="item.code"
           >
-            <el-option
-              v-for="item in searchOptions"
-              :key="item.code"
-              :label="`${item.code} ${item.name}`"
-              :value="item.code"
-            >
-              <div class="fund-option">
-                <strong>{{ item.code }} {{ item.name }}</strong>
-                <span>{{ item.type || '基金' }} · {{ item.company || '未知公司' }}</span>
+            <div class="fund-option">
+              <strong>{{ item.code }} {{ item.name }}</strong>
+              <span>{{ item.type || '基金' }} / {{ item.company || '未知公司' }}</span>
+            </div>
+          </el-option>
+        </el-select>
+        <el-input-number v-model="newHoldingAmount" :min="0" :precision="2" :step="1000" />
+        <el-button type="primary" :loading="adding" @click="addSelectedFund">添加自选</el-button>
+      </div>
+
+      <el-skeleton v-if="initialLoading" :rows="6" animated />
+
+      <template v-else>
+        <el-empty v-if="!watchlist.length" description="暂无自选基金，搜索基金后添加到工作台。" />
+
+        <el-table v-else :data="watchlist" class="fund-table" row-key="code" @row-click="openTrend">
+          <el-table-column prop="code" label="代码" width="100" fixed />
+          <el-table-column prop="name" label="基金名称" min-width="220" />
+          <el-table-column label="持有金额" width="170">
+            <template #default="{ row }">
+              <el-input-number
+                v-model="row.holdingAmount"
+                :min="0"
+                :precision="2"
+                :step="1000"
+                controls-position="right"
+                @change="() => saveHolding(row)"
+                @click.stop
+              />
+            </template>
+          </el-table-column>
+          <el-table-column label="昨日净值" width="110">
+            <template #default="{ row }">{{ formatNumber(row.previousNav) }}</template>
+          </el-table-column>
+          <el-table-column label="预估净值" width="110">
+            <template #default="{ row }">{{ formatNumber(row.estimateNav) }}</template>
+          </el-table-column>
+          <el-table-column label="涨跌幅" width="110">
+            <template #default="{ row }">
+              <span class="rate-cell" :class="toneClass(row.estimateRate || 0)">
+                <el-icon><component :is="(row.estimateRate || 0) >= 0 ? TopRight : BottomRight" /></el-icon>
+                {{ formatPercent(row.estimateRate || 0) }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column label="预估盈亏" width="130">
+            <template #default="{ row }">
+              <strong :class="toneClass(row.estimateProfit || 0)">{{ formatMoney(row.estimateProfit || 0) }}</strong>
+            </template>
+          </el-table-column>
+          <el-table-column label="预估市值" width="140">
+            <template #default="{ row }">{{ formatMoney(row.estimateMarketValue || row.holdingAmount || 0) }}</template>
+          </el-table-column>
+          <el-table-column label="估值时间" min-width="170">
+            <template #default="{ row }">
+              <span v-if="row.error" class="error-text">{{ row.error }}</span>
+              <span v-else>{{ row.estimateTime || '-' }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="120" fixed="right">
+            <template #default="{ row }">
+              <el-button link type="primary" @click.stop="openTrend(row)">详情</el-button>
+              <el-button link type="danger" @click.stop="removeFund(row.code)">删除</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+
+        <div class="mobile-list">
+          <article v-for="row in watchlist" :key="row.code" class="fund-mobile-card" @click="openTrend(row)">
+            <div>
+              <strong>{{ row.name }}</strong>
+              <span>{{ row.code }} / {{ row.estimateTime || '-' }}</span>
+            </div>
+            <b :class="toneClass(row.estimateProfit || 0)">{{ formatMoney(row.estimateProfit || 0) }}</b>
+            <dl>
+              <div>
+                <dt>持有金额</dt>
+                <dd>{{ formatMoney(row.holdingAmount || 0) }}</dd>
               </div>
-            </el-option>
-          </el-select>
-          <el-input-number v-model="newHoldingAmount" :min="0" :precision="2" :step="1000" />
-          <el-button type="primary" round :loading="adding" @click="addSelectedFund">添加</el-button>
+              <div>
+                <dt>涨跌幅</dt>
+                <dd :class="toneClass(row.estimateRate || 0)">{{ formatPercent(row.estimateRate || 0) }}</dd>
+              </div>
+              <div>
+                <dt>预估净值</dt>
+                <dd>{{ formatNumber(row.estimateNav) }}</dd>
+              </div>
+            </dl>
+          </article>
         </div>
-      </div>
-
-      <el-alert
-        v-if="unauthorized"
-        title="请先登录后查看当前用户保存的自选基金。"
-        type="warning"
-        show-icon
-        :closable="false"
-        style="margin-bottom: 16px"
-      />
-
-      <el-table :data="watchlist" class="fund-table" row-key="code" empty-text="暂无自选基金">
-        <el-table-column prop="code" label="代码" width="100" fixed />
-        <el-table-column prop="name" label="基金名称" min-width="230" />
-        <el-table-column label="持有金额" width="180">
-          <template #default="{ row }">
-            <el-input-number
-              v-model="row.holdingAmount"
-              :min="0"
-              :precision="2"
-              :step="1000"
-              controls-position="right"
-              @change="saveHolding(row)"
-            />
-          </template>
-        </el-table-column>
-        <el-table-column label="昨日净值" width="110">
-          <template #default="{ row }">{{ formatNumber(row.previousNav) }}</template>
-        </el-table-column>
-        <el-table-column label="预估净值" width="110">
-          <template #default="{ row }">{{ formatNumber(row.estimateNav) }}</template>
-        </el-table-column>
-        <el-table-column label="涨跌幅" width="110">
-          <template #default="{ row }">
-            <span :class="row.estimateRate >= 0 ? 'up' : 'down'">{{ formatPercent(row.estimateRate || 0) }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="预估盈亏" width="130">
-          <template #default="{ row }">
-            <strong :class="row.estimateProfit >= 0 ? 'up' : 'down'">{{ formatMoney(row.estimateProfit || 0) }}</strong>
-          </template>
-        </el-table-column>
-        <el-table-column label="预估市值" width="140">
-          <template #default="{ row }">{{ formatMoney(row.estimateMarketValue || row.holdingAmount || 0) }}</template>
-        </el-table-column>
-        <el-table-column label="估值时间" min-width="170">
-          <template #default="{ row }">
-            <span v-if="row.error" class="error-text">{{ row.error }}</span>
-            <span v-else>{{ row.estimateTime || '-' }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="110" fixed="right">
-          <template #default="{ row }">
-            <el-button link type="danger" @click="removeFund(row.code)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+      </template>
     </section>
 
-    <section id="risk" class="risk-panel">
-      <strong>估算说明</strong>
-      <p>实时估值由后端从公开基金数据源获取，仅供盘中参考。最终净值和收益以基金公司披露为准。</p>
+    <section id="notice" class="notice-section">
+      <div>
+        <h2>估值说明</h2>
+        <p>实时估值由后端从公开基金数据源获取，仅供盘中参考。最终净值、份额和收益以基金公司披露与交易确认结果为准。</p>
+      </div>
+      <div class="notice-actions">
+        <el-button type="primary" plain @click="openFeedback">提交反馈</el-button>
+        <el-button type="warning" plain @click="coffeeDialogVisible = true">支持作者</el-button>
+      </div>
     </section>
 
-    <footer id="footer" class="site-footer">
-      <div class="footer-card">
-        <p>数据源：实时估值与重仓直连东方财富，仅供个人学习及参考使用。数据可能存在延迟，不作为任何投资建议。</p>
-        <p>注：估算数据与真实结算数据会有 1% 左右误差，非股票型基金误差较大。</p>
-        <div class="footer-links">
-          <a class="footer-link" :href="feedbackUrl" target="_blank" rel="noreferrer">点此提交反馈</a>
-          <el-button type="warning" round @click="coffeeDialogVisible = true">点此请作者喝杯咖啡</el-button>
-        </div>
-      </div>
-    </footer>
+    <el-drawer v-model="trendVisible" title="持仓详情" size="420px">
+      <template v-if="selectedRow">
+        <el-descriptions :column="1" border>
+          <el-descriptions-item label="基金">{{ selectedRow.code }} {{ selectedRow.name }}</el-descriptions-item>
+          <el-descriptions-item label="持有金额">{{ formatMoney(selectedRow.holdingAmount || 0) }}</el-descriptions-item>
+          <el-descriptions-item label="预估市值">{{ formatMoney(selectedRow.estimateMarketValue || selectedRow.holdingAmount || 0) }}</el-descriptions-item>
+          <el-descriptions-item label="预估盈亏">
+            <span :class="toneClass(selectedRow.estimateProfit || 0)">{{ formatMoney(selectedRow.estimateProfit || 0) }}</span>
+          </el-descriptions-item>
+          <el-descriptions-item label="涨跌幅">
+            <span :class="toneClass(selectedRow.estimateRate || 0)">{{ formatPercent(selectedRow.estimateRate || 0) }}</span>
+          </el-descriptions-item>
+          <el-descriptions-item label="数据时间">{{ selectedRow.estimateTime || '-' }}</el-descriptions-item>
+        </el-descriptions>
+        <el-alert
+          class="drawer-note"
+          title="历史走势接口尚未接入，当前展示最近一次估值快照。"
+          type="info"
+          show-icon
+          :closable="false"
+        />
+      </template>
+    </el-drawer>
+
+    <el-dialog v-model="settingsVisible" title="页面设置" width="420px" align-center>
+      <el-form label-width="110px">
+        <el-form-item label="刷新模式">
+          <el-segmented v-model="refreshMode" :options="refreshModeOptions" />
+        </el-form-item>
+        <el-form-item label="状态">
+          <el-tag :type="documentVisible ? 'success' : 'info'">
+            {{ documentVisible ? '页面可见' : '页面隐藏' }}
+          </el-tag>
+        </el-form-item>
+      </el-form>
+    </el-dialog>
 
     <el-dialog v-model="coffeeDialogVisible" title="请作者喝咖啡" width="420px" align-center destroy-on-close>
       <div class="coffee-dialog">
-        <el-radio-group v-model="payMethod" class="coffee-switch">
+        <el-radio-group v-model="payMethod">
           <el-radio-button label="alipay">支付宝</el-radio-button>
           <el-radio-button label="wechat">微信支付</el-radio-button>
         </el-radio-group>
-
-        <div class="pay-preview">
-          <img :src="currentPayImage" :alt="payMethod === 'alipay' ? '支付宝收款码' : '微信支付收款码'" />
-        </div>
-
-        <p class="coffee-note">感谢您的支持！您的鼓励是我持续维护和更新的动力。</p>
+        <img :src="currentPayImage" :alt="payMethod === 'alipay' ? '支付宝收款码' : '微信收款码'" />
+        <p>感谢支持，维护一个实时估值小工具需要一点耐心，也需要一点咖啡因。</p>
       </div>
     </el-dialog>
   </main>
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
-import { ArrowDown, RefreshRight } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import {
+  ArrowDown,
+  BottomRight,
+  Link,
+  Refresh,
+  RefreshRight,
+  Setting,
+  TopRight
+} from '@element-plus/icons-vue'
 import alipayPay from '../assets/alipay-pay.png'
 import wechatPay from '../assets/wechat-pay.png'
 import { getUserInfo, logout, type UserInfo } from '../api/auth'
@@ -256,6 +320,7 @@ import {
 } from '../api/fund'
 
 type PayMethod = 'alipay' | 'wechat'
+type RefreshMode = 'manual' | 'standard' | 'fast'
 
 const repositoryUrl = 'https://github.com/yujianghuai03/yujianghuai'
 const feedbackUrl = `${repositoryUrl}/issues/new`
@@ -266,60 +331,111 @@ const roleTextMap: Record<string, string> = {
   ROLE_MANAGER: '经理',
   ROLE_OPERATOR: '运营人员'
 }
+const navItems = [
+  { key: 'overview', label: '总览' },
+  { key: 'portfolio', label: '自选持仓' },
+  { key: 'notice', label: '说明' }
+]
+const refreshModeOptions = [
+  { label: '手动', value: 'manual' },
+  { label: '标准 15s', value: 'standard' },
+  { label: '快速 5s', value: 'fast' }
+]
 
 const router = useRouter()
+const activeSection = ref('overview')
 const selectedCode = ref('')
 const searching = ref(false)
 const refreshing = ref(false)
+const initialLoading = ref(true)
 const adding = ref(false)
 const unauthorized = ref(false)
+const loadError = ref('')
 const authenticated = ref(hasToken())
 const coffeeDialogVisible = ref(false)
+const settingsVisible = ref(false)
+const trendVisible = ref(false)
+const documentVisible = ref(document.visibilityState === 'visible')
+const refreshMode = ref<RefreshMode>('standard')
 const payMethod = ref<PayMethod>('alipay')
 const searchOptions = ref<FundSearchItem[]>([])
 const watchlist = ref<FundEstimateRow[]>([])
 const lastUpdated = ref('')
 const newHoldingAmount = ref(10000)
 const userInfo = ref<UserInfo | null>(null)
+const selectedRow = ref<FundEstimateRow | null>(null)
 let searchTimer: number | undefined
 let refreshTimer: number | undefined
+let controller: AbortController | null = null
 
+const refreshMs = computed(() => {
+  if (refreshMode.value === 'fast') {
+    return 5000
+  }
+  if (refreshMode.value === 'manual') {
+    return 0
+  }
+  return 15000
+})
 const totalHolding = computed(() => watchlist.value.reduce((sum, item) => sum + Number(item.holdingAmount || 0), 0))
 const totalProfit = computed(() => watchlist.value.reduce((sum, item) => sum + Number(item.estimateProfit || 0), 0))
 const totalMarketValue = computed(() => watchlist.value.reduce((sum, item) => sum + Number(item.estimateMarketValue || item.holdingAmount || 0), 0))
 const portfolioChange = computed(() => totalHolding.value ? totalProfit.value / totalHolding.value * 100 : 0)
+const staleSeconds = computed(() => {
+  if (!lastUpdated.value) {
+    return null
+  }
+  const parsed = Date.parse(lastUpdated.value)
+  return Number.isNaN(parsed) ? null : Math.max(0, Math.round((Date.now() - parsed) / 1000))
+})
+const marketOpen = computed(() => {
+  const now = new Date()
+  const day = now.getDay()
+  const minutes = now.getHours() * 60 + now.getMinutes()
+  return day >= 1 && day <= 5 && minutes >= 9 * 60 + 30 && minutes <= 15 * 60
+})
+const metrics = computed(() => [
+  { label: '今日预估盈亏', value: formatMoney(totalProfit.value), hint: '按持仓金额与实时涨跌估算', tone: toneClass(totalProfit.value) },
+  { label: '预估总市值', value: formatMoney(totalMarketValue.value), hint: `${watchlist.value.length} 只自选基金`, tone: '' },
+  { label: '持有金额', value: formatMoney(totalHolding.value), hint: '用户录入的本金口径', tone: '' },
+  { label: '组合涨跌', value: formatPercent(portfolioChange.value), hint: '预估盈亏 / 持有金额', tone: toneClass(portfolioChange.value) },
+  { label: '数据新鲜度', value: staleSeconds.value === null ? '-' : `${staleSeconds.value}s`, hint: lastUpdated.value || '等待首次刷新', tone: staleSeconds.value !== null && staleSeconds.value > 60 ? 'down' : 'up' }
+])
+const refreshStatusText = computed(() => {
+  if (refreshMode.value === 'manual') {
+    return '当前为手动刷新模式。'
+  }
+  if (!documentVisible.value) {
+    return '页面不可见，已暂停自动请求。'
+  }
+  return `自动刷新周期 ${refreshMs.value / 1000} 秒。`
+})
 const displayName = computed(() => userInfo.value?.username || getStoredValue('YJH_USERNAME') || '未登录')
 const tenantLabel = computed(() => userInfo.value?.tenant_name || getStoredValue('YJH_TENANT_NAME') || '-')
 const roleLabels = computed(() => {
   const authorities = Array.isArray(userInfo.value?.authorities) && userInfo.value.authorities.length
     ? userInfo.value.authorities
     : []
-  if (!authorities.length) {
-    return ['基金观察者']
-  }
-  return authorities.map((role) => roleTextMap[role] || role.replace(/^ROLE_/, ''))
+  return authorities.length ? authorities.map((role) => roleTextMap[role] || role.replace(/^ROLE_/, '')) : ['基金观察者']
 })
 const primaryRoleLabel = computed(() => roleLabels.value[0] || '基金观察者')
 const displayMeta = computed(() => roleLabels.value.join(' / '))
-const avatarText = computed(() => {
-  const name = displayName.value.trim()
-  if (!name || name === '未登录') {
-    return '未'
-  }
-  return name.slice(0, 1).toUpperCase()
-})
+const avatarText = computed(() => displayName.value === '未登录' ? '未' : displayName.value.trim().slice(0, 1).toUpperCase())
 const currentPayImage = computed(() => payMethod.value === 'alipay' ? alipayPay : wechatPay)
 
 onMounted(() => {
+  document.addEventListener('visibilitychange', handleVisibilityChange)
   void loadUserProfile()
-  void loadWatchlist()
-  refreshTimer = window.setInterval(loadWatchlist, 10000)
+  void loadWatchlist(true)
 })
 
 onBeforeUnmount(() => {
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
   window.clearTimeout(searchTimer)
-  window.clearInterval(refreshTimer)
+  stopPolling()
 })
+
+watch(refreshMs, () => schedulePolling())
 
 function hasToken() {
   return Boolean(getStoredValue('YJH_TOKEN'))
@@ -338,6 +454,30 @@ function clearAuthStorage() {
   localStorage.removeItem('YJH_TENANT_NAME')
   localStorage.removeItem('YJH_USERNAME')
   localStorage.removeItem('YJH_ADMIN_AUTH')
+}
+
+function handleVisibilityChange() {
+  documentVisible.value = document.visibilityState === 'visible'
+  if (documentVisible.value) {
+    void loadWatchlist(false)
+  } else {
+    stopPolling()
+  }
+}
+
+function schedulePolling() {
+  stopPolling()
+  if (!refreshMs.value || !documentVisible.value || unauthorized.value) {
+    return
+  }
+  refreshTimer = window.setTimeout(() => void loadWatchlist(false), refreshMs.value)
+}
+
+function stopPolling() {
+  window.clearTimeout(refreshTimer)
+  refreshTimer = undefined
+  controller?.abort()
+  controller = null
 }
 
 async function loadUserProfile() {
@@ -389,11 +529,17 @@ async function addSelectedFund() {
     ElMessage.warning('请先选择基金')
     return
   }
+  if (newHoldingAmount.value <= 0) {
+    ElMessage.warning('持有金额必须大于 0')
+    return
+  }
   adding.value = true
   try {
     await addWatchFund(option.code, option.name, newHoldingAmount.value)
     selectedCode.value = ''
-    await loadWatchlist()
+    searchOptions.value = []
+    ElMessage.success('已添加自选基金')
+    await loadWatchlist(true)
   } catch (error) {
     handleError(error, '添加基金失败')
   } finally {
@@ -401,31 +547,46 @@ async function addSelectedFund() {
   }
 }
 
-async function loadWatchlist() {
+async function loadWatchlist(manual: boolean) {
+  if (!documentVisible.value && !manual) {
+    return
+  }
+  controller?.abort()
+  controller = new AbortController()
   refreshing.value = true
   authenticated.value = hasToken()
+  loadError.value = ''
   try {
-    watchlist.value = await listWatchFunds()
+    watchlist.value = await listWatchFunds(controller.signal)
     unauthorized.value = false
     lastUpdated.value = watchlist.value.find((item) => item.estimateTime)?.estimateTime
-      || new Date().toLocaleTimeString('zh-CN', { hour12: false })
+      || new Date().toLocaleString('zh-CN', { hour12: false })
   } catch (error) {
+    if (isAbortError(error)) {
+      return
+    }
     if (isUnauthorized(error)) {
       unauthorized.value = true
       watchlist.value = []
       lastUpdated.value = ''
     } else {
-      handleError(error, '加载自选基金失败')
+      loadError.value = error instanceof Error ? error.message : '加载自选基金失败'
+      if (manual) {
+        handleError(error, '加载自选基金失败')
+      }
     }
   } finally {
     refreshing.value = false
+    initialLoading.value = false
+    schedulePolling()
   }
 }
 
 async function saveHolding(row: FundEstimateRow) {
   try {
     await updateFundHolding(row.code, row.holdingAmount || 0)
-    await loadWatchlist()
+    ElMessage.success('持有金额已保存')
+    await loadWatchlist(true)
   } catch (error) {
     handleError(error, '保存持有金额失败')
   }
@@ -433,9 +594,18 @@ async function saveHolding(row: FundEstimateRow) {
 
 async function removeFund(code: string) {
   try {
+    await ElMessageBox.confirm('确定删除这只自选基金吗？', '删除确认', {
+      type: 'warning',
+      confirmButtonText: '删除',
+      cancelButtonText: '取消'
+    })
     await deleteWatchFund(code)
-    await loadWatchlist()
+    ElMessage.success('已删除自选基金')
+    await loadWatchlist(true)
   } catch (error) {
+    if (error === 'cancel' || error === 'close') {
+      return
+    }
     handleError(error, '删除基金失败')
   }
 }
@@ -445,7 +615,7 @@ async function handleLogout() {
     await logout()
   } catch (error) {
     if (!isUnauthorized(error)) {
-      ElMessage.warning(error instanceof Error ? error.message : '退出登录时发生异常，已为你清理本地登录状态')
+      ElMessage.warning(error instanceof Error ? error.message : '退出登录时发生异常，已清理本地登录状态')
     }
   } finally {
     clearAuthStorage()
@@ -460,7 +630,13 @@ async function handleLogout() {
   }
 }
 
+function openTrend(row: FundEstimateRow) {
+  selectedRow.value = row
+  trendVisible.value = true
+}
+
 function scrollToSection(id: string) {
+  activeSection.value = id
   document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
@@ -468,8 +644,22 @@ function goLogin() {
   router.push('/login')
 }
 
+function openRepository() {
+  window.open(repositoryUrl, '_blank', 'noopener,noreferrer')
+}
+
 function openFeedback() {
   window.open(feedbackUrl, '_blank', 'noopener,noreferrer')
+}
+
+function toneClass(value: number) {
+  if (value > 0) {
+    return 'up'
+  }
+  if (value < 0) {
+    return 'down'
+  }
+  return ''
 }
 
 function formatPercent(value: number) {
@@ -486,6 +676,13 @@ function formatMoney(value: number) {
     currency: 'CNY',
     maximumFractionDigits: 2
   }).format(Number(value || 0))
+}
+
+function isAbortError(error: unknown) {
+  return typeof error === 'object'
+    && error !== null
+    && ('name' in error || 'code' in error)
+    && ((error as { name?: string }).name === 'CanceledError' || (error as { code?: string }).code === 'ERR_CANCELED')
 }
 
 function isUnauthorized(error: unknown) {

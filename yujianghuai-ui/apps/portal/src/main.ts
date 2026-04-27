@@ -5,6 +5,6 @@ import App from './App.vue'
 import router from './router'
 import './styles.css'
 
-document.title = '基金实时预估V1.0'
+document.title = '基金实时预估 V1.0'
 
 createApp(App).use(router).use(ElementPlus).mount('#app')

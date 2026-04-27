@@ -37,8 +37,8 @@ export async function searchFunds(keyword: string) {
   return response.data.data
 }
 
-export async function listWatchFunds() {
-  const response = await request.get<ApiResult<FundEstimateRow[]>>('/api/funds/watchlist')
+export async function listWatchFunds(signal?: AbortSignal) {
+  const response = await request.get<ApiResult<FundEstimateRow[]>>('/api/funds/watchlist', { signal })
   return response.data.data
 }
 
