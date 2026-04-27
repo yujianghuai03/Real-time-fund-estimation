@@ -124,7 +124,10 @@
 
       <div class="watch-toolbar">
         <el-select
-          v-model="selectedCode"
+          v-model="selectedCodes"
+          multiple
+          collapse-tags
+          collapse-tags-tooltip
           filterable
           remote
           clearable
@@ -145,7 +148,6 @@
             </div>
           </el-option>
         </el-select>
-        <el-input-number v-model="newHoldingAmount" :min="0" :precision="2" :step="1000" />
         <el-button type="primary" :loading="adding" @click="addSelectedFund">添加自选</el-button>
       </div>
 
@@ -198,16 +200,16 @@
           </el-table-column>
           <el-table-column label="持有金额" width="170">
             <template #default="{ row }">
-              <el-input-number
-                v-model="row.holdingAmount"
-                :min="0"
-                :precision="2"
-                :step="1000"
-                controls-position="right"
-                @change="() => saveHolding(row)"
-                @click.stop
-              />
+              <div class="holding-cell">
+                <span>{{ formatMoney(row.holdingAmount || 0) }}</span>
+                <el-tooltip content="持仓操作" placement="top">
+                  <el-button :icon="Setting" circle size="small" @click.stop="openHoldingAction(row)" />
+                </el-tooltip>
+              </div>
             </template>
+          </el-table-column>
+          <el-table-column label="持仓成本" width="130">
+            <template #default="{ row }">{{ formatMoney(row.holdingCost || 0) }}</template>
           </el-table-column>
           <el-table-column label="昨日净值" width="110">
             <template #default="{ row }">{{ formatNumber(row.previousNav) }}</template>
@@ -271,7 +273,14 @@
             <dl>
               <div>
                 <dt>持有金额</dt>
-                <dd>{{ formatMoney(row.holdingAmount || 0) }}</dd>
+                <dd class="mobile-holding-value">
+                  <span>{{ formatMoney(row.holdingAmount || 0) }}</span>
+                  <el-button :icon="Setting" circle size="small" @click.stop="openHoldingAction(row)" />
+                </dd>
+              </div>
+              <div>
+                <dt>持仓成本</dt>
+                <dd>{{ formatMoney(row.holdingCost || 0) }}</dd>
               </div>
               <div>
                 <dt>涨跌幅</dt>
@@ -303,6 +312,7 @@
         <el-descriptions :column="1" border>
           <el-descriptions-item label="基金">{{ selectedRow.code }} {{ selectedRow.name }}</el-descriptions-item>
           <el-descriptions-item label="持有金额">{{ formatMoney(selectedRow.holdingAmount || 0) }}</el-descriptions-item>
+          <el-descriptions-item label="持仓成本">{{ formatMoney(selectedRow.holdingCost || 0) }}</el-descriptions-item>
           <el-descriptions-item label="预估市值">{{ formatMoney(selectedRow.estimateMarketValue || selectedRow.holdingAmount || 0) }}</el-descriptions-item>
           <el-descriptions-item label="预估盈亏">
             <span :class="toneClass(selectedRow.estimateProfit || 0)">{{ formatMoney(selectedRow.estimateProfit || 0) }}</span>
@@ -370,6 +380,138 @@
         <el-empty v-if="!customGroups.length" description="暂无自定义分组" />
       </div>
     </el-dialog>
+
+    <el-dialog v-model="batchGroupDialogVisible" title="选择分组" width="460px" align-center>
+      <p class="batch-add-summary">已选择 {{ pendingAddFunds.length }} 只基金</p>
+      <el-select
+        v-model="batchGroupIds"
+        multiple
+        clearable
+        collapse-tags
+        collapse-tags-tooltip
+        placeholder="选择分组（可选）"
+        style="width: 100%"
+      >
+        <el-option label="全部" :value="-1" disabled />
+        <el-option label="自选" :value="-2" disabled />
+        <el-option
+          v-for="group in customGroups"
+          :key="group.id"
+          :label="group.name"
+          :value="group.id"
+        />
+      </el-select>
+      <template #footer>
+        <el-button @click="batchGroupDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="adding" @click="confirmBatchAddFunds">确认添加</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="holdingActionVisible" title="持仓操作" width="520px" align-center>
+      <template v-if="holdingActionRow">
+        <div class="holding-action-head">
+          <div>
+            <strong>{{ holdingActionRow.name }}</strong>
+            <span>{{ holdingActionRow.code }}</span>
+          </div>
+          <el-button plain @click="showTransactionRecords = !showTransactionRecords">交易记录</el-button>
+        </div>
+
+        <div v-if="showTransactionRecords" class="transaction-list">
+          <div v-for="record in currentFundTransactions" :key="record.tradeTime + record.tradeType + record.amount" class="transaction-row">
+            <div>
+              <strong>{{ record.tradeType }}</strong>
+              <span>{{ formatTradeTime(record.tradeTime) }}</span>
+            </div>
+            <b>{{ formatMoney(record.amount || 0) }}</b>
+            <small>
+              {{ formatMoney(record.beforeAmount || 0) }} → {{ formatMoney(record.afterAmount || 0) }}
+              <template v-if="record.targetFundCode"> / {{ record.targetFundName }} {{ record.targetFundCode }}</template>
+            </small>
+          </div>
+          <el-empty v-if="!currentFundTransactions.length" description="暂无交易记录" />
+        </div>
+
+        <div class="holding-action-grid">
+          <el-button type="primary" plain @click="openTradeForm('加仓')">加仓</el-button>
+          <el-button type="danger" plain @click="openTradeForm('减仓')">减仓</el-button>
+          <el-button type="success" plain @click="openTradeForm('定投')">定投</el-button>
+          <el-button type="warning" plain @click="openTradeForm('转换')">转换</el-button>
+        </div>
+
+        <div class="holding-action-secondary">
+          <el-button plain @click="openTradeForm('编辑持仓')">编辑持仓</el-button>
+          <el-button type="danger" plain @click="clearHolding">清空持仓</el-button>
+        </div>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="tradeFormVisible" :title="activeTradeType" width="520px" align-center>
+      <el-form label-width="110px">
+        <el-form-item :label="activeTradeType === '编辑持仓' ? '新持仓金额' : '操作金额'">
+          <el-input-number v-model="tradeAmount" :min="0" :precision="2" :step="1000" />
+        </el-form-item>
+        <template v-if="activeTradeType === '编辑持仓'">
+          <el-form-item label="收益金额">
+            <el-input-number v-model="tradeProfitAmount" :precision="2" :step="1000" />
+          </el-form-item>
+          <el-form-item label="持仓成本">
+            <strong>{{ formatMoney(editHoldingCost) }}</strong>
+          </el-form-item>
+        </template>
+        <template v-if="activeTradeType === '转换'">
+          <el-form-item label="目标基金">
+            <el-select
+              v-model="targetFundSelector"
+              filterable
+              clearable
+              placeholder="选择已有基金"
+              @change="selectExistingTargetFund"
+            >
+              <el-option
+                v-for="item in watchlist.filter((fund) => fund.code !== holdingActionRow?.code)"
+                :key="item.code"
+                :label="`${item.code} ${item.name}`"
+                :value="item.code"
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="搜索基金">
+            <el-select
+              v-model="targetSearchCode"
+              filterable
+              remote
+              clearable
+              reserve-keyword
+              placeholder="搜索基金代码或名称"
+              :remote-method="remoteTargetSearch"
+              :loading="targetSearching"
+              @change="selectSearchedTargetFund"
+            >
+              <el-option
+                v-for="item in targetSearchOptions"
+                :key="item.code"
+                :label="`${item.code} ${item.name}`"
+                :value="item.code"
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="手动输入">
+            <div class="manual-target">
+              <el-input v-model="manualTargetCode" placeholder="基金代码" />
+              <el-input v-model="manualTargetName" placeholder="基金名称" />
+            </div>
+          </el-form-item>
+        </template>
+        <el-form-item label="备注">
+          <el-input v-model="tradeRemark" type="textarea" :rows="2" placeholder="可选" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="tradeFormVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitTradeForm">确认</el-button>
+      </template>
+    </el-dialog>
   </main>
 </template>
 
@@ -395,7 +537,9 @@ import {
   createFundGroup,
   deleteFundGroup,
   deleteWatchFund,
+  estimateFund,
   listFundGroups,
+  listFundTransactions,
   listWatchFunds,
   mergeCloudSnapshot,
   replaceCloudSnapshot,
@@ -406,11 +550,13 @@ import {
   type FundEstimateRow,
   type FundGroup,
   type FundSnapshot,
-  type FundSearchItem
+  type FundSearchItem,
+  type FundTransaction
 } from '../api/fund'
 
 type PayMethod = 'alipay' | 'wechat'
 type RefreshMode = 'manual' | 'standard' | 'fast'
+type TradeType = '加仓' | '减仓' | '定投' | '转换' | '编辑持仓' | '清空持仓' | ''
 type GroupTab = {
   key: string
   id?: number
@@ -442,7 +588,7 @@ const localSnapshotKey = 'YJH_LOCAL_FUND_SNAPSHOT'
 
 const router = useRouter()
 const activeSection = ref('overview')
-const selectedCode = ref('')
+const selectedCodes = ref<string[]>([])
 const searching = ref(false)
 const refreshing = ref(false)
 const initialLoading = ref(true)
@@ -455,21 +601,39 @@ const settingsVisible = ref(false)
 const trendVisible = ref(false)
 const groupDialogVisible = ref(false)
 const groupManageVisible = ref(false)
+const batchGroupDialogVisible = ref(false)
+const holdingActionVisible = ref(false)
+const tradeFormVisible = ref(false)
+const showTransactionRecords = ref(false)
 const documentVisible = ref(document.visibilityState === 'visible')
 const refreshMode = ref<RefreshMode>('standard')
 const payMethod = ref<PayMethod>('alipay')
 const searchOptions = ref<FundSearchItem[]>([])
 const watchlist = ref<FundEstimateRow[]>([])
 const customGroups = ref<FundGroup[]>([])
+const fundTransactions = ref<FundTransaction[]>([])
+const pendingAddFunds = ref<FundSearchItem[]>([])
 const activeGroupKey = ref('all')
 const groupFormName = ref('')
 const savingGroup = ref(false)
 const editingGroup = ref<FundGroup | null>(null)
 const lastUpdated = ref('')
-const newHoldingAmount = ref(10000)
+const batchGroupIds = ref<number[]>([])
 const userInfo = ref<UserInfo | null>(null)
 const selectedRow = ref<FundEstimateRow | null>(null)
+const holdingActionRow = ref<FundEstimateRow | null>(null)
+const activeTradeType = ref<TradeType>('')
+const tradeAmount = ref(0)
+const tradeProfitAmount = ref(0)
+const tradeRemark = ref('')
+const targetFundSelector = ref('')
+const targetSearchCode = ref('')
+const targetSearching = ref(false)
+const targetSearchOptions = ref<FundSearchItem[]>([])
+const manualTargetCode = ref('')
+const manualTargetName = ref('')
 let searchTimer: number | undefined
+let targetSearchTimer: number | undefined
 let refreshTimer: number | undefined
 let controller: AbortController | null = null
 let syncingLocalAndCloud = false
@@ -554,6 +718,15 @@ const primaryRoleLabel = computed(() => roleLabels.value[0] || '基金观察者'
 const displayMeta = computed(() => roleLabels.value.join(' / '))
 const avatarText = computed(() => displayName.value === '未登录' ? '未' : displayName.value.trim().slice(0, 1).toUpperCase())
 const currentPayImage = computed(() => payMethod.value === 'alipay' ? alipayPay : wechatPay)
+const currentFundTransactions = computed(() => {
+  if (!holdingActionRow.value) {
+    return []
+  }
+  return fundTransactions.value
+    .filter((record) => record.fundCode === holdingActionRow.value?.code)
+    .sort((a, b) => Date.parse(b.tradeTime) - Date.parse(a.tradeTime))
+})
+const editHoldingCost = computed(() => Math.max(0, Number(tradeAmount.value || 0) - Number(tradeProfitAmount.value || 0)))
 
 onMounted(() => {
   document.addEventListener('visibilitychange', handleVisibilityChange)
@@ -565,6 +738,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   document.removeEventListener('visibilitychange', handleVisibilityChange)
   window.clearTimeout(searchTimer)
+  window.clearTimeout(targetSearchTimer)
   stopPolling()
 })
 
@@ -657,6 +831,22 @@ async function loadGroups() {
   }
 }
 
+async function loadTransactions() {
+  if (!hasToken()) {
+    fundTransactions.value = readLocalSnapshot().transactions
+    return
+  }
+  try {
+    fundTransactions.value = await listFundTransactions()
+  } catch (error) {
+    if (isUnauthorized(error)) {
+      fundTransactions.value = []
+      return
+    }
+    handleError(error, '加载交易记录失败')
+  }
+}
+
 function remoteSearch(keyword: string) {
   window.clearTimeout(searchTimer)
   searchTimer = window.setTimeout(async () => {
@@ -676,31 +866,49 @@ function remoteSearch(keyword: string) {
 }
 
 async function addSelectedFund() {
-  const option = searchOptions.value.find((item) => item.code === selectedCode.value)
-  if (!option) {
+  const options = selectedCodes.value
+    .map((code) => searchOptions.value.find((item) => item.code === code))
+    .filter((item): item is FundSearchItem => Boolean(item))
+  if (!options.length) {
     ElMessage.warning('请先选择基金')
     return
   }
-  if (newHoldingAmount.value <= 0) {
-    ElMessage.warning('持有金额必须大于 0')
+  pendingAddFunds.value = options
+  batchGroupIds.value = [-1, -2]
+  batchGroupDialogVisible.value = true
+}
+
+async function confirmBatchAddFunds() {
+  if (!pendingAddFunds.value.length) {
+    ElMessage.warning('请先选择基金')
     return
   }
   adding.value = true
   try {
+    const groupIds = batchGroupIds.value.filter((id) => id > 0)
     if (hasToken()) {
-      await addWatchFund(option.code, option.name, newHoldingAmount.value)
+      for (const option of pendingAddFunds.value) {
+        await addWatchFund(option.code, option.name, 0)
+        await updateWatchFundGroups(option.code, groupIds)
+      }
       mirrorNextCloudSnapshot = true
     } else {
-      upsertLocalFund({
-        id: Date.now(),
-        code: option.code,
-        name: option.name,
-        holdingAmount: newHoldingAmount.value,
-        groupIds: []
+      pendingAddFunds.value.forEach((option, index) => {
+        upsertLocalFund({
+          id: Date.now() + index,
+          code: option.code,
+          name: option.name,
+          holdingAmount: 0,
+          holdingCost: 0,
+          groupIds: [...groupIds]
+        })
       })
     }
-    selectedCode.value = ''
+    selectedCodes.value = []
     searchOptions.value = []
+    pendingAddFunds.value = []
+    batchGroupIds.value = [-1, -2]
+    batchGroupDialogVisible.value = false
     ElMessage.success('已添加自选基金')
     await loadWatchlist(true)
   } catch (error) {
@@ -721,7 +929,7 @@ async function loadWatchlist(manual: boolean) {
   loadError.value = ''
   if (!authenticated.value) {
     const snapshot = readLocalSnapshot()
-    applySnapshotToPage(snapshot)
+    applySnapshotToPage(await hydrateLocalSnapshot(snapshot))
     unauthorized.value = false
     refreshing.value = false
     initialLoading.value = false
@@ -856,16 +1064,240 @@ async function removeGroup(group: FundGroup) {
 
 async function saveHolding(row: FundEstimateRow) {
   try {
+    const beforeAmount = Number(row.holdingAmount || 0)
     if (hasToken()) {
-      await updateFundHolding(row.code, row.holdingAmount || 0)
+      await updateFundHolding(row.code, row.holdingAmount || 0, row.holdingCost || 0)
       mirrorNextCloudSnapshot = true
     } else {
       persistCurrentSnapshot()
     }
+    addTransactionRecord({
+      fundCode: row.code,
+      fundName: row.name,
+      tradeType: '编辑持仓',
+      amount: Math.abs(Number(row.holdingAmount || 0) - beforeAmount),
+      beforeAmount,
+      afterAmount: Number(row.holdingAmount || 0),
+      tradeTime: new Date().toISOString()
+    })
     ElMessage.success('持有金额已保存')
-    await loadWatchlist(true)
+    await syncSnapshotAfterLocalChange()
   } catch (error) {
     handleError(error, '保存持有金额失败')
+  }
+}
+
+function openHoldingAction(row: FundEstimateRow) {
+  holdingActionRow.value = row
+  showTransactionRecords.value = false
+  holdingActionVisible.value = true
+}
+
+function openTradeForm(type: TradeType) {
+  activeTradeType.value = type
+  tradeAmount.value = type === '编辑持仓' ? Number(holdingActionRow.value?.holdingAmount || 0) : 0
+  tradeProfitAmount.value = type === '编辑持仓' ? Math.max(0, Number(holdingActionRow.value?.holdingAmount || 0) - Number(holdingActionRow.value?.holdingCost || 0)) : 0
+  tradeRemark.value = ''
+  targetFundSelector.value = ''
+  targetSearchCode.value = ''
+  targetSearchOptions.value = []
+  manualTargetCode.value = ''
+  manualTargetName.value = ''
+  tradeFormVisible.value = true
+}
+
+function remoteTargetSearch(keyword: string) {
+  window.clearTimeout(targetSearchTimer)
+  targetSearchTimer = window.setTimeout(async () => {
+    if (!keyword.trim()) {
+      targetSearchOptions.value = []
+      return
+    }
+    targetSearching.value = true
+    try {
+      targetSearchOptions.value = await searchFunds(keyword)
+    } catch (error) {
+      handleError(error, '基金搜索失败')
+    } finally {
+      targetSearching.value = false
+    }
+  }, 260)
+}
+
+function selectExistingTargetFund(code: string) {
+  const target = watchlist.value.find((fund) => fund.code === code)
+  if (target) {
+    manualTargetCode.value = target.code
+    manualTargetName.value = target.name
+  }
+}
+
+function selectSearchedTargetFund(code: string) {
+  const target = targetSearchOptions.value.find((fund) => fund.code === code)
+  if (target) {
+    manualTargetCode.value = target.code
+    manualTargetName.value = target.name
+  }
+}
+
+async function submitTradeForm() {
+  const row = holdingActionRow.value
+  if (!row || !activeTradeType.value) {
+    return
+  }
+  const amount = Number(tradeAmount.value || 0)
+  if (amount <= 0 && activeTradeType.value !== '编辑持仓') {
+    ElMessage.warning('请输入大于 0 的金额')
+    return
+  }
+  try {
+    if (activeTradeType.value === '转换') {
+      await applyTransfer(row, amount)
+    } else {
+      await applyHoldingTrade(row, activeTradeType.value, amount)
+    }
+    tradeFormVisible.value = false
+    ElMessage.success('持仓操作已完成')
+  } catch (error) {
+    handleError(error, '持仓操作失败')
+  }
+}
+
+async function applyHoldingTrade(row: FundEstimateRow, type: TradeType, amount: number) {
+  const beforeAmount = Number(row.holdingAmount || 0)
+  let afterAmount = beforeAmount
+  if (type === '加仓' || type === '定投') {
+    afterAmount = beforeAmount + amount
+  } else if (type === '减仓') {
+    afterAmount = beforeAmount - amount
+    if (afterAmount < 0) {
+      throw new Error('减仓金额不能大于当前持仓')
+    }
+  } else if (type === '编辑持仓') {
+    afterAmount = amount
+  }
+  row.holdingAmount = afterAmount
+  if (type === '编辑持仓') {
+    row.holdingCost = editHoldingCost.value
+  }
+  recalculateEstimate(row)
+  addTransactionRecord({
+    fundCode: row.code,
+    fundName: row.name,
+    tradeType: type,
+    amount: type === '编辑持仓' ? Math.abs(afterAmount - beforeAmount) : amount,
+    beforeAmount,
+    afterAmount,
+    remark: tradeRemark.value.trim(),
+    tradeTime: new Date().toISOString()
+  })
+  await syncSnapshotAfterLocalChange()
+}
+
+async function applyTransfer(row: FundEstimateRow, amount: number) {
+  const targetCode = manualTargetCode.value.trim()
+  const targetName = manualTargetName.value.trim() || targetCode
+  if (!targetCode && !targetName) {
+    throw new Error('请选择或输入目标基金')
+  }
+  const beforeAmount = Number(row.holdingAmount || 0)
+  const afterAmount = beforeAmount - amount
+  if (afterAmount < 0) {
+    throw new Error('转换金额不能大于当前持仓')
+  }
+  row.holdingAmount = afterAmount
+  recalculateEstimate(row)
+  let target = watchlist.value.find((fund) => fund.code === targetCode)
+  const targetBefore = Number(target?.holdingAmount || 0)
+  if (!target) {
+    target = {
+      id: Date.now(),
+      code: targetCode || targetName,
+      name: targetName,
+      holdingAmount: 0,
+      holdingCost: 0,
+      groupIds: []
+    }
+    watchlist.value.unshift(target)
+  }
+  target.holdingAmount = targetBefore + amount
+  recalculateEstimate(target)
+  addTransactionRecord({
+    fundCode: row.code,
+    fundName: row.name,
+    tradeType: '转换',
+    amount,
+    beforeAmount,
+    afterAmount,
+    targetFundCode: target.code,
+    targetFundName: target.name,
+    remark: tradeRemark.value.trim(),
+    tradeTime: new Date().toISOString()
+  })
+  addTransactionRecord({
+    fundCode: target.code,
+    fundName: target.name,
+    tradeType: '转换转入',
+    amount,
+    beforeAmount: targetBefore,
+    afterAmount: target.holdingAmount,
+    targetFundCode: row.code,
+    targetFundName: row.name,
+    remark: tradeRemark.value.trim(),
+    tradeTime: new Date().toISOString()
+  })
+  await syncSnapshotAfterLocalChange()
+}
+
+async function clearHolding() {
+  const row = holdingActionRow.value
+  if (!row) {
+    return
+  }
+  try {
+    await ElMessageBox.confirm('确定清空该基金持仓吗？', '清空持仓', {
+      type: 'warning',
+      confirmButtonText: '清空',
+      cancelButtonText: '取消'
+    })
+    const beforeAmount = Number(row.holdingAmount || 0)
+    row.holdingAmount = 0
+    addTransactionRecord({
+      fundCode: row.code,
+      fundName: row.name,
+      tradeType: '清空持仓',
+      amount: beforeAmount,
+      beforeAmount,
+      afterAmount: 0,
+      tradeTime: new Date().toISOString()
+    })
+    await syncSnapshotAfterLocalChange()
+    ElMessage.success('持仓已清空')
+  } catch (error) {
+    if (error === 'cancel' || error === 'close') {
+      return
+    }
+    handleError(error, '清空持仓失败')
+  }
+}
+
+function addTransactionRecord(record: FundTransaction) {
+  fundTransactions.value.unshift(record)
+  persistCurrentSnapshot()
+}
+
+function recalculateEstimate(row: FundEstimateRow) {
+  const holdingAmount = Number(row.holdingAmount || 0)
+  const rate = Number(row.estimateRate || 0)
+  row.estimateProfit = holdingAmount * rate / 100
+  row.estimateMarketValue = holdingAmount + row.estimateProfit
+}
+
+async function syncSnapshotAfterLocalChange() {
+  persistCurrentSnapshot()
+  if (hasToken()) {
+    await replaceCloudSnapshot(readLocalSnapshot())
+    mirrorNextCloudSnapshot = true
   }
 }
 
@@ -893,21 +1325,24 @@ async function removeFund(code: string) {
 }
 
 async function fetchCloudSnapshot(signal?: AbortSignal): Promise<FundSnapshot> {
-  const [funds, groups] = await Promise.all([
+  const [funds, groups, transactions] = await Promise.all([
     listWatchFunds(signal),
-    listFundGroups()
+    listFundGroups(),
+    listFundTransactions()
   ])
   return {
     funds: funds.map((fund) => ({
       code: fund.code,
       name: fund.name,
       holdingAmount: Number(fund.holdingAmount || 0),
+      holdingCost: Number(fund.holdingCost || 0),
       groupIds: fund.groupIds || []
     })),
     groups: groups.map((group) => ({
       id: group.id,
       name: group.name
-    }))
+    })),
+    transactions
   }
 }
 
@@ -1001,16 +1436,49 @@ async function askLocalSyncMode() {
 
 function applySnapshotToPage(snapshot: FundSnapshot) {
   customGroups.value = snapshot.groups.map((group) => ({ ...group, count: 0 }))
+  fundTransactions.value = snapshot.transactions || []
   watchlist.value = snapshot.funds.map((fund, index) => ({
     id: index + 1,
     code: fund.code,
     name: fund.name,
     holdingAmount: Number(fund.holdingAmount || 0),
+    holdingCost: Number(fund.holdingCost || 0),
+    navDate: fund.navDate,
+    previousNav: fund.previousNav,
+    estimateNav: fund.estimateNav,
+    estimateRate: fund.estimateRate,
+    estimateProfit: fund.estimateProfit,
+    estimateMarketValue: fund.estimateMarketValue,
+    estimateTime: fund.estimateTime,
+    error: fund.error,
     groupIds: fund.groupIds || []
   }))
   if (!groupTabs.value.some((group) => group.key === activeGroupKey.value)) {
     activeGroupKey.value = 'all'
   }
+}
+
+async function hydrateLocalSnapshot(snapshot: FundSnapshot): Promise<FundSnapshot> {
+  const funds = await Promise.all(snapshot.funds.map(async (fund) => {
+    try {
+      const estimate = await estimateFund(fund.code)
+      return {
+        ...fund,
+        name: estimate.name || fund.name,
+        navDate: estimate.navDate,
+        previousNav: estimate.previousNav,
+        estimateNav: estimate.estimateNav,
+        estimateRate: estimate.estimateRate,
+        estimateProfit: Number(fund.holdingAmount || 0) * Number(estimate.estimateRate || 0) / 100,
+        estimateMarketValue: Number(fund.holdingAmount || 0) * (1 + Number(estimate.estimateRate || 0) / 100),
+        estimateTime: estimate.estimateTime,
+        error: estimate.error
+      }
+    } catch {
+      return fund
+    }
+  }))
+  return { ...snapshot, funds }
 }
 
 function readLocalSnapshot(): FundSnapshot {
@@ -1040,7 +1508,8 @@ function persistCurrentSnapshot() {
     groups: customGroups.value.map((group) => ({
       id: group.id,
       name: group.name
-    }))
+    })),
+    transactions: fundTransactions.value
   })
 }
 
@@ -1051,7 +1520,8 @@ function upsertLocalFund(fund: FundEstimateRow) {
       ...watchlist.value[index],
       name: fund.name,
       holdingAmount: fund.holdingAmount,
-      groupIds: watchlist.value[index].groupIds || []
+      holdingCost: fund.holdingCost,
+      groupIds: fund.groupIds || watchlist.value[index].groupIds || []
     }
   } else {
     watchlist.value.unshift(fund)
@@ -1112,17 +1582,35 @@ function normalizeSnapshot(snapshot: FundSnapshot): FundSnapshot {
         code: String(fund.code),
         name: String(fund.name || fund.code),
         holdingAmount: Number(fund.holdingAmount || 0),
+        holdingCost: Number(fund.holdingCost || 0),
         groupIds: (fund.groupIds || []).map(Number).filter((id) => groupIds.has(id))
-      }))
+      })),
+    transactions: Array.isArray(snapshot?.transactions)
+      ? snapshot.transactions
+          .filter((record) => record?.fundCode && record?.tradeType)
+          .map((record) => ({
+            id: record.id,
+            fundCode: String(record.fundCode),
+            fundName: String(record.fundName || record.fundCode),
+            tradeType: String(record.tradeType),
+            amount: Number(record.amount || 0),
+            beforeAmount: Number(record.beforeAmount || 0),
+            afterAmount: Number(record.afterAmount || 0),
+            targetFundCode: record.targetFundCode,
+            targetFundName: record.targetFundName,
+            remark: record.remark,
+            tradeTime: record.tradeTime || new Date().toISOString()
+          }))
+      : []
   }
 }
 
 function emptySnapshot(): FundSnapshot {
-  return { funds: [], groups: [] }
+  return { funds: [], groups: [], transactions: [] }
 }
 
 function snapshotHasData(snapshot: FundSnapshot) {
-  return snapshot.funds.length > 0 || snapshot.groups.length > 0
+  return snapshot.funds.length > 0 || snapshot.groups.length > 0 || snapshot.transactions.length > 0
 }
 
 function snapshotsEqual(left: FundSnapshot, right: FundSnapshot) {
@@ -1136,12 +1624,26 @@ function snapshotComparable(snapshot: FundSnapshot) {
         code: fund.code,
         name: fund.name,
         holdingAmount: Number(fund.holdingAmount || 0),
+        holdingCost: Number(fund.holdingCost || 0),
         groupIds: [...(fund.groupIds || [])].sort((a, b) => a - b)
       }))
       .sort((a, b) => a.code.localeCompare(b.code)),
     groups: [...snapshot.groups]
       .map((group) => ({ id: group.id, name: group.name }))
-      .sort((a, b) => a.id - b.id)
+      .sort((a, b) => a.id - b.id),
+    transactions: [...(snapshot.transactions || [])]
+      .map((record) => ({
+        fundCode: record.fundCode,
+        fundName: record.fundName,
+        tradeType: record.tradeType,
+        amount: Number(record.amount || 0),
+        beforeAmount: Number(record.beforeAmount || 0),
+        afterAmount: Number(record.afterAmount || 0),
+        targetFundCode: record.targetFundCode || '',
+        targetFundName: record.targetFundName || '',
+        tradeTime: record.tradeTime
+      }))
+      .sort((a, b) => `${a.tradeTime}${a.fundCode}${a.tradeType}`.localeCompare(`${b.tradeTime}${b.fundCode}${b.tradeType}`))
   }
 }
 
@@ -1156,7 +1658,7 @@ async function handleLogout() {
     clearAuthStorage()
     authenticated.value = false
     userInfo.value = null
-    selectedCode.value = ''
+    selectedCodes.value = []
     searchOptions.value = []
     applySnapshotToPage(readLocalSnapshot())
     activeGroupKey.value = 'all'
@@ -1216,6 +1718,14 @@ function formatMoney(value: number) {
     currency: 'CNY',
     maximumFractionDigits: 2
   }).format(Number(value || 0))
+}
+
+function formatTradeTime(value: string) {
+  if (!value) {
+    return '-'
+  }
+  const parsed = new Date(value)
+  return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleString('zh-CN', { hour12: false })
 }
 
 function isAbortError(error: unknown) {

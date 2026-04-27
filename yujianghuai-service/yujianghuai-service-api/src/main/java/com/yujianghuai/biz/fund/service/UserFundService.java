@@ -5,21 +5,28 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.yujianghuai.biz.fund.entity.UserFund;
 import com.yujianghuai.biz.fund.entity.UserFundGroup;
 import com.yujianghuai.biz.fund.entity.UserFundGroupRelation;
+import com.yujianghuai.biz.fund.entity.UserFundTransaction;
 import com.yujianghuai.biz.fund.mapper.UserFundGroupMapper;
 import com.yujianghuai.biz.fund.mapper.UserFundGroupRelationMapper;
 import com.yujianghuai.biz.fund.mapper.UserFundMapper;
+import com.yujianghuai.biz.fund.mapper.UserFundTransactionMapper;
 import com.yujianghuai.biz.fund.model.FundEstimateVO;
 import com.yujianghuai.biz.fund.model.FundGroupVO;
 import com.yujianghuai.biz.fund.model.FundSearchVO;
 import com.yujianghuai.biz.fund.model.FundSnapshotFund;
 import com.yujianghuai.biz.fund.model.FundSnapshotGroup;
 import com.yujianghuai.biz.fund.model.FundSnapshotRequest;
+import com.yujianghuai.biz.fund.model.FundSnapshotTransaction;
+import com.yujianghuai.biz.fund.model.FundTransactionVO;
 import com.yujianghuai.biz.fund.model.FundWatchRequest;
 import com.yujianghuai.common.exception.BizException;
 import com.yujianghuai.common.tenant.TenantContext;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.security.Principal;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -39,20 +46,27 @@ public class UserFundService {
     private final UserFundMapper userFundMapper;
     private final UserFundGroupMapper userFundGroupMapper;
     private final UserFundGroupRelationMapper userFundGroupRelationMapper;
+    private final UserFundTransactionMapper userFundTransactionMapper;
     private final FundMarketClient fundMarketClient;
 
     public UserFundService(UserFundMapper userFundMapper,
                            UserFundGroupMapper userFundGroupMapper,
                            UserFundGroupRelationMapper userFundGroupRelationMapper,
+                           UserFundTransactionMapper userFundTransactionMapper,
                            FundMarketClient fundMarketClient) {
         this.userFundMapper = userFundMapper;
         this.userFundGroupMapper = userFundGroupMapper;
         this.userFundGroupRelationMapper = userFundGroupRelationMapper;
+        this.userFundTransactionMapper = userFundTransactionMapper;
         this.fundMarketClient = fundMarketClient;
     }
 
     public List<FundSearchVO> search(String keyword) {
         return fundMarketClient.search(keyword);
+    }
+
+    public FundEstimateVO estimate(String code) {
+        return fundMarketClient.estimate(normalizeCode(code));
     }
 
     public List<FundEstimateVO> listWithRealtimeEstimate(Principal principal) {
@@ -82,6 +96,18 @@ public class UserFundService {
                         Collectors.mapping(UserFundGroupRelation::getFundCode, Collectors.collectingAndThen(Collectors.toSet(), (set) -> (long) set.size()))));
         return listCustomGroups(username).stream()
                 .map((group) -> toGroupVO(group, countMap.getOrDefault(group.getId(), 0L)))
+                .toList();
+    }
+
+    public List<FundTransactionVO> listTransactions(Principal principal) {
+        String username = currentUsername(principal);
+        return userFundTransactionMapper.selectList(new LambdaQueryWrapper<UserFundTransaction>()
+                        .eq(UserFundTransaction::getUsername, username)
+                        .eq(UserFundTransaction::getDelFlag, "0")
+                        .orderByDesc(UserFundTransaction::getTradeTime)
+                        .orderByDesc(UserFundTransaction::getId))
+                .stream()
+                .map(this::toTransactionVO)
                 .toList();
     }
 
@@ -165,6 +191,7 @@ public class UserFundService {
             exists.setDelFlag("0");
             exists.setFundName(resolveName(code, request.getName()));
             exists.setHoldingAmount(nullToZero(request.getHoldingAmount()));
+            exists.setHoldingCost(nullToZero(request.getHoldingCost()));
             userFundMapper.updateById(exists);
             return toEstimate(exists);
         }
@@ -175,6 +202,7 @@ public class UserFundService {
         fund.setFundCode(code);
         fund.setFundName(resolveName(code, request.getName()));
         fund.setHoldingAmount(nullToZero(request.getHoldingAmount()));
+        fund.setHoldingCost(nullToZero(request.getHoldingCost()));
         fund.setSortOrder(0);
         fund.setDelFlag("0");
         userFundMapper.insert(fund);
@@ -197,10 +225,11 @@ public class UserFundService {
     }
 
     @Transactional
-    public Boolean updateHolding(Principal principal, String code, BigDecimal holdingAmount) {
+    public Boolean updateHolding(Principal principal, String code, BigDecimal holdingAmount, BigDecimal holdingCost) {
         String username = currentUsername(principal);
         int updated = userFundMapper.update(new LambdaUpdateWrapper<UserFund>()
                 .set(UserFund::getHoldingAmount, nullToZero(holdingAmount))
+                .set(UserFund::getHoldingCost, nullToZero(holdingCost))
                 .eq(UserFund::getUsername, username)
                 .eq(UserFund::getFundCode, normalizeCode(code))
                 .eq(UserFund::getDelFlag, "0"));
@@ -242,11 +271,15 @@ public class UserFundService {
         userFundGroupRelationMapper.update(new LambdaUpdateWrapper<UserFundGroupRelation>()
                 .set(UserFundGroupRelation::getDelFlag, "1")
                 .eq(UserFundGroupRelation::getUsername, username));
+        userFundTransactionMapper.update(new LambdaUpdateWrapper<UserFundTransaction>()
+                .set(UserFundTransaction::getDelFlag, "1")
+                .eq(UserFundTransaction::getUsername, username));
     }
 
     private void applySnapshot(String username, FundSnapshotRequest request, boolean replace) {
         List<FundSnapshotGroup> requestGroups = request == null || request.getGroups() == null ? List.of() : request.getGroups();
         List<FundSnapshotFund> requestFunds = request == null || request.getFunds() == null ? List.of() : request.getFunds();
+        List<FundSnapshotTransaction> requestTransactions = request == null || request.getTransactions() == null ? List.of() : request.getTransactions();
         Map<String, UserFundGroup> existingGroupsByName = listCustomGroups(username).stream()
                 .collect(Collectors.toMap(UserFundGroup::getGroupName, Function.identity(), (left, right) -> left));
         Map<Long, Long> groupIdMap = requestGroups.stream()
@@ -261,6 +294,28 @@ public class UserFundService {
                         .forEach((groupId) -> ensureRelation(username, code, groupId));
             }
         });
+        requestTransactions.forEach((transaction) -> insertSnapshotTransaction(username, transaction));
+    }
+
+    private void insertSnapshotTransaction(String username, FundSnapshotTransaction snapshot) {
+        if (!StringUtils.hasText(snapshot.getFundCode()) || !StringUtils.hasText(snapshot.getTradeType())) {
+            return;
+        }
+        UserFundTransaction transaction = new UserFundTransaction();
+        transaction.setTenantId(currentTenantId());
+        transaction.setUsername(username);
+        transaction.setFundCode(normalizeCode(snapshot.getFundCode()));
+        transaction.setFundName(StringUtils.hasText(snapshot.getFundName()) ? snapshot.getFundName().trim() : snapshot.getFundCode());
+        transaction.setTradeType(snapshot.getTradeType());
+        transaction.setAmount(nullToZero(snapshot.getAmount()));
+        transaction.setBeforeAmount(nullToZero(snapshot.getBeforeAmount()));
+        transaction.setAfterAmount(nullToZero(snapshot.getAfterAmount()));
+        transaction.setTargetFundCode(snapshot.getTargetFundCode());
+        transaction.setTargetFundName(snapshot.getTargetFundName());
+        transaction.setRemark(snapshot.getRemark());
+        transaction.setTradeTime(parseTradeTime(snapshot.getTradeTime()));
+        transaction.setDelFlag("0");
+        userFundTransactionMapper.insert(transaction);
     }
 
     private Long ensureSnapshotGroup(String username, FundSnapshotGroup snapshotGroup,
@@ -296,6 +351,7 @@ public class UserFundService {
         fund.setFundCode(code);
         fund.setFundName(StringUtils.hasText(snapshotFund.getName()) ? snapshotFund.getName().trim() : code);
         fund.setHoldingAmount(nullToZero(snapshotFund.getHoldingAmount()));
+        fund.setHoldingCost(nullToZero(snapshotFund.getHoldingCost()));
         fund.setSortOrder(0);
         fund.setDelFlag("0");
         if (exists == null) {
@@ -386,6 +442,38 @@ public class UserFundService {
         return vo;
     }
 
+    private FundTransactionVO toTransactionVO(UserFundTransaction transaction) {
+        FundTransactionVO vo = new FundTransactionVO();
+        vo.setId(transaction.getId());
+        vo.setFundCode(transaction.getFundCode());
+        vo.setFundName(transaction.getFundName());
+        vo.setTradeType(transaction.getTradeType());
+        vo.setAmount(transaction.getAmount());
+        vo.setBeforeAmount(transaction.getBeforeAmount());
+        vo.setAfterAmount(transaction.getAfterAmount());
+        vo.setTargetFundCode(transaction.getTargetFundCode());
+        vo.setTargetFundName(transaction.getTargetFundName());
+        vo.setRemark(transaction.getRemark());
+        vo.setTradeTime(transaction.getTradeTime() == null ? null : transaction.getTradeTime().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+        return vo;
+    }
+
+    private LocalDateTime parseTradeTime(String tradeTime) {
+        if (!StringUtils.hasText(tradeTime)) {
+            return LocalDateTime.now();
+        }
+        try {
+            return OffsetDateTime.parse(tradeTime).toLocalDateTime();
+        } catch (RuntimeException ignored) {
+            // Try local date time below.
+        }
+        try {
+            return LocalDateTime.parse(tradeTime);
+        } catch (RuntimeException exception) {
+            return LocalDateTime.now();
+        }
+    }
+
     private FundEstimateVO toEstimate(UserFund fund) {
         FundEstimateVO estimate = fundMarketClient.estimate(fund.getFundCode());
         estimate.setId(fund.getId());
@@ -393,6 +481,7 @@ public class UserFundService {
         estimate.setName(StringUtils.hasText(estimate.getName()) && estimate.getError() == null
                 ? estimate.getName() : fund.getFundName());
         estimate.setHoldingAmount(nullToZero(fund.getHoldingAmount()));
+        estimate.setHoldingCost(nullToZero(fund.getHoldingCost()));
         BigDecimal rate = estimate.getEstimateRate() == null ? BigDecimal.ZERO : estimate.getEstimateRate();
         BigDecimal profit = estimate.getHoldingAmount().multiply(rate)
                 .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);

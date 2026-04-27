@@ -6,6 +6,7 @@ import com.yujianghuai.biz.fund.model.FundGroupRequest;
 import com.yujianghuai.biz.fund.model.FundGroupVO;
 import com.yujianghuai.biz.fund.model.FundSearchVO;
 import com.yujianghuai.biz.fund.model.FundSnapshotRequest;
+import com.yujianghuai.biz.fund.model.FundTransactionVO;
 import com.yujianghuai.biz.fund.model.FundWatchRequest;
 import com.yujianghuai.biz.fund.model.HoldingAmountRequest;
 import com.yujianghuai.biz.fund.service.UserFundService;
@@ -47,6 +48,11 @@ public class FundController {
     public R<List<FundSearchVO>> search(@Parameter(description = "搜索关键字", required = true) @RequestParam String keyword) {
         return R.ok(userFundService.search(keyword));
     }
+    @GetMapping("/estimate/{code}")
+    @Operation(summary = "实时估值", description = "根据基金代码查询公开实时估值")
+    public R<FundEstimateVO> estimate(@Parameter(description = "基金代码", required = true) @PathVariable String code) {
+        return R.ok(userFundService.estimate(code));
+    }
 
     /**
      * 查询自选基金列表。
@@ -61,6 +67,12 @@ public class FundController {
     @Operation(summary = "查询基金分组", description = "查询当前登录用户的自定义基金分组")
     public R<List<FundGroupVO>> groups(Principal principal) {
         return R.ok(userFundService.listGroups(principal));
+    }
+
+    @GetMapping("/transactions")
+    @Operation(summary = "查询基金交易记录", description = "查询当前登录用户的基金交易记录")
+    public R<List<FundTransactionVO>> transactions(Principal principal) {
+        return R.ok(userFundService.listTransactions(principal));
     }
 
     @PostMapping("/groups")
@@ -111,7 +123,7 @@ public class FundController {
                                             required = true,
                                             content = @Content(schema = @Schema(implementation = HoldingAmountRequest.class)))
                                     @Valid @RequestBody HoldingAmountRequest request) {
-        return R.ok(userFundService.updateHolding(principal, code, request.getHoldingAmount()));
+        return R.ok(userFundService.updateHolding(principal, code, request.getHoldingAmount(), request.getHoldingCost()));
     }
 
     @PutMapping("/watchlist/{code}/groups")

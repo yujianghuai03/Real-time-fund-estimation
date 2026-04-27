@@ -23,7 +23,7 @@ public class GatewaySecurityConfig {
         return http
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .authorizeExchange(registry -> {
-                    registry.pathMatchers("/api/funds/search").permitAll();
+                    registry.pathMatchers("/api/funds/search", "/api/funds/estimate/**").permitAll();
                     properties.getIgnorePaths().forEach(path -> registry.pathMatchers(path).permitAll());
                     registry.anyExchange().authenticated();
                 })

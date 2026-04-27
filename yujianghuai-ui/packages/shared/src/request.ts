@@ -8,7 +8,7 @@ export const request = axios.create({
 })
 
 request.interceptors.request.use((config) => {
-  const skipAuth = config.url?.startsWith('/api/funds/search')
+  const skipAuth = config.url?.startsWith('/api/funds/search') || config.url?.startsWith('/api/funds/estimate/')
   const token = typeof window !== 'undefined' ? window.localStorage.getItem('YJH_TOKEN') : ''
   const tenantId = typeof window !== 'undefined' ? window.localStorage.getItem('YJH_TENANT_ID') : ''
   config.headers = config.headers ?? {}

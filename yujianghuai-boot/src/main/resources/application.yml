@@ -57,5 +57,6 @@ app:
       - /actuator/**
       - /error
       - /api/funds/search
+      - /api/funds/estimate/**
     ignore-tables:
       - sys_tenant

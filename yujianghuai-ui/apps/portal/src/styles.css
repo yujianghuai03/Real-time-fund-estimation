@@ -340,9 +340,14 @@ button {
 
 .watch-toolbar {
   display: grid;
-  grid-template-columns: minmax(240px, 1fr) 180px auto;
+  grid-template-columns: minmax(280px, 1fr) auto;
   gap: 10px;
   margin: 18px 0;
+}
+
+.batch-add-summary {
+  margin: 0 0 12px;
+  color: #5b6964;
 }
 
 .group-toolbar {
@@ -397,6 +402,70 @@ button {
   border-radius: 8px;
 }
 
+.holding-action-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.holding-action-head strong,
+.holding-action-head span {
+  display: block;
+}
+
+.holding-action-head span {
+  margin-top: 4px;
+  color: #6f7c77;
+}
+
+.holding-action-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.holding-action-secondary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.transaction-list {
+  display: grid;
+  gap: 8px;
+  max-height: 260px;
+  margin-bottom: 16px;
+  overflow-y: auto;
+}
+
+.transaction-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 10px;
+  padding: 10px 12px;
+  border: 1px solid #e4ebe5;
+  border-radius: 8px;
+}
+
+.transaction-row span,
+.transaction-row small {
+  color: #6f7c77;
+}
+
+.transaction-row small {
+  grid-column: 1 / -1;
+}
+
+.manual-target {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+}
+
 .fund-option strong,
 .fund-option span {
   display: block;
@@ -421,6 +490,18 @@ button {
 
 .fund-table .el-input-number {
   width: 132px;
+}
+
+.holding-cell,
+.mobile-holding-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.holding-cell .el-button,
+.mobile-holding-value .el-button {
+  flex-shrink: 0;
 }
 
 .fund-table .el-select {
@@ -572,10 +653,6 @@ button {
     grid-template-columns: 1fr;
   }
 
-  .watch-toolbar .el-input-number {
-    width: 100%;
-  }
-
   .group-toolbar {
     align-items: stretch;
     flex-direction: column;
@@ -634,6 +711,14 @@ button {
   .fund-mobile-card .el-select {
     width: 100%;
     margin: 10px 0;
+  }
+
+  .holding-action-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .manual-target {
+    grid-template-columns: 1fr;
   }
 
   .fund-mobile-card dl {

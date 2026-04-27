@@ -31,6 +31,8 @@ public class UserFund extends BaseEntity {
     private String fundName;
     @Schema(description = "持有金额")
     private BigDecimal holdingAmount;
+    @Schema(description = "持仓成本")
+    private BigDecimal holdingCost;
     @Schema(description = "排序值")
     private Integer sortOrder;
 }

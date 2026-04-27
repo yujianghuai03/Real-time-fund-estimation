@@ -7,7 +7,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "gateway.auth")
 public class GatewayAuthProperties {
 
-    private List<String> ignorePaths = new ArrayList<>(List.of("/api/funds/search"));
+    private List<String> ignorePaths = new ArrayList<>(List.of("/api/funds/search", "/api/funds/estimate/**"));
 
     public List<String> getIgnorePaths() {
         return ignorePaths;

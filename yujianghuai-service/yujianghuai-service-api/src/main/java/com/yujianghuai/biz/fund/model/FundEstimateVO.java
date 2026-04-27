@@ -22,6 +22,9 @@ public class FundEstimateVO {
     @Schema(description = "持有金额")
     private BigDecimal holdingAmount;
 
+    @Schema(description = "持仓成本")
+    private BigDecimal holdingCost;
+
     @Schema(description = "净值日期")
     private String navDate;
 

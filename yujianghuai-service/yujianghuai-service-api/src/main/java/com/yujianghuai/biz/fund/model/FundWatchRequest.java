@@ -20,4 +20,8 @@ public class FundWatchRequest {
     @DecimalMin("0")
     @Schema(description = "持有金额")
     private BigDecimal holdingAmount = BigDecimal.ZERO;
+
+    @DecimalMin("0")
+    @Schema(description = "持仓成本")
+    private BigDecimal holdingCost = BigDecimal.ZERO;
 }

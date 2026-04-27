@@ -40,4 +40,5 @@ gateway:
       - /.well-known/**
       - /token/check_token
       - /api/funds/search
+      - /api/funds/estimate/**
       - /actuator/**
