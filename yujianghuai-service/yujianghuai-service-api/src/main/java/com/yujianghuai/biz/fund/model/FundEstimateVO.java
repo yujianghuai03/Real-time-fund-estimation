@@ -2,6 +2,8 @@ package com.yujianghuai.biz.fund.model;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.Data;
 
 @Data
@@ -43,4 +45,7 @@ public class FundEstimateVO {
 
     @Schema(description = "错误信息")
     private String error;
+
+    @Schema(description = "所属自定义分组ID列表")
+    private List<Long> groupIds = new ArrayList<>();
 }

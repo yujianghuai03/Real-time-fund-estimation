@@ -149,14 +149,53 @@
         <el-button type="primary" :loading="adding" @click="addSelectedFund">添加自选</el-button>
       </div>
 
+      <div class="group-toolbar">
+        <div class="group-tabs">
+          <button
+            v-for="group in groupTabs"
+            :key="group.key"
+            :class="{ active: activeGroupKey === group.key }"
+            type="button"
+            @click="activeGroupKey = group.key"
+          >
+            {{ group.name }}（{{ group.count }}）
+          </button>
+        </div>
+        <div class="group-actions">
+          <el-button :icon="Plus" plain @click="openCreateGroup">新增分组</el-button>
+          <el-button :icon="Setting" plain @click="groupManageVisible = true">管理分组</el-button>
+        </div>
+      </div>
+
       <el-skeleton v-if="initialLoading" :rows="6" animated />
 
       <template v-else>
-        <el-empty v-if="!watchlist.length" description="暂无自选基金，搜索基金后添加到工作台。" />
+        <el-empty v-if="!filteredWatchlist.length" :description="emptyDescription" />
 
-        <el-table v-else :data="watchlist" class="fund-table" row-key="code" @row-click="openTrend">
+        <el-table v-else :data="filteredWatchlist" class="fund-table" row-key="code" @row-click="openTrend">
           <el-table-column prop="code" label="代码" width="100" fixed />
           <el-table-column prop="name" label="基金名称" min-width="220" />
+          <el-table-column label="所属分组" min-width="220">
+            <template #default="{ row }">
+              <el-select
+                v-model="row.groupIds"
+                multiple
+                collapse-tags
+                collapse-tags-tooltip
+                clearable
+                placeholder="选择分组"
+                @change="() => saveFundGroups(row)"
+                @click.stop
+              >
+                <el-option
+                  v-for="group in customGroups"
+                  :key="group.id"
+                  :label="group.name"
+                  :value="group.id"
+                />
+              </el-select>
+            </template>
+          </el-table-column>
           <el-table-column label="持有金额" width="170">
             <template #default="{ row }">
               <el-input-number
@@ -207,12 +246,28 @@
         </el-table>
 
         <div class="mobile-list">
-          <article v-for="row in watchlist" :key="row.code" class="fund-mobile-card" @click="openTrend(row)">
+          <article v-for="row in filteredWatchlist" :key="row.code" class="fund-mobile-card" @click="openTrend(row)">
             <div>
               <strong>{{ row.name }}</strong>
               <span>{{ row.code }} / {{ row.estimateTime || '-' }}</span>
             </div>
             <b :class="toneClass(row.estimateProfit || 0)">{{ formatMoney(row.estimateProfit || 0) }}</b>
+            <el-select
+              v-model="row.groupIds"
+              multiple
+              collapse-tags
+              clearable
+              placeholder="选择分组"
+              @change="() => saveFundGroups(row)"
+              @click.stop
+            >
+              <el-option
+                v-for="group in customGroups"
+                :key="group.id"
+                :label="group.name"
+                :value="group.id"
+              />
+            </el-select>
             <dl>
               <div>
                 <dt>持有金额</dt>
@@ -290,6 +345,31 @@
         <p>感谢支持，维护一个实时估值小工具需要一点耐心，也需要一点咖啡因。</p>
       </div>
     </el-dialog>
+
+    <el-dialog v-model="groupDialogVisible" :title="editingGroup ? '重命名分组' : '新增分组'" width="420px" align-center>
+      <el-form label-width="90px">
+        <el-form-item label="分组名称">
+          <el-input v-model="groupFormName" maxlength="30" show-word-limit placeholder="请输入分组名称" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="groupDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="savingGroup" @click="saveGroup">保存</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="groupManageVisible" title="管理分组" width="480px" align-center>
+      <div class="group-manage-list">
+        <div v-for="group in customGroups" :key="group.id" class="group-manage-row">
+          <span>{{ group.name }}（{{ group.count }}）</span>
+          <div>
+            <el-button link type="primary" @click="openEditGroup(group)">重命名</el-button>
+            <el-button link type="danger" @click="removeGroup(group)">删除</el-button>
+          </div>
+        </div>
+        <el-empty v-if="!customGroups.length" description="暂无自定义分组" />
+      </div>
+    </el-dialog>
   </main>
 </template>
 
@@ -301,6 +381,7 @@ import {
   ArrowDown,
   BottomRight,
   Link,
+  Plus,
   Refresh,
   RefreshRight,
   Setting,
@@ -311,16 +392,32 @@ import wechatPay from '../assets/wechat-pay.png'
 import { getUserInfo, logout, type UserInfo } from '../api/auth'
 import {
   addWatchFund,
+  createFundGroup,
+  deleteFundGroup,
   deleteWatchFund,
+  listFundGroups,
   listWatchFunds,
+  mergeCloudSnapshot,
+  replaceCloudSnapshot,
   searchFunds,
+  updateFundGroup,
   updateFundHolding,
+  updateWatchFundGroups,
   type FundEstimateRow,
+  type FundGroup,
+  type FundSnapshot,
   type FundSearchItem
 } from '../api/fund'
 
 type PayMethod = 'alipay' | 'wechat'
 type RefreshMode = 'manual' | 'standard' | 'fast'
+type GroupTab = {
+  key: string
+  id?: number
+  name: string
+  count: number
+  type: 'all' | 'watch' | 'custom'
+}
 
 const repositoryUrl = 'https://github.com/yujianghuai03/yujianghuai'
 const feedbackUrl = `${repositoryUrl}/issues/new`
@@ -341,6 +438,7 @@ const refreshModeOptions = [
   { label: '标准 15s', value: 'standard' },
   { label: '快速 5s', value: 'fast' }
 ]
+const localSnapshotKey = 'YJH_LOCAL_FUND_SNAPSHOT'
 
 const router = useRouter()
 const activeSection = ref('overview')
@@ -355,11 +453,18 @@ const authenticated = ref(hasToken())
 const coffeeDialogVisible = ref(false)
 const settingsVisible = ref(false)
 const trendVisible = ref(false)
+const groupDialogVisible = ref(false)
+const groupManageVisible = ref(false)
 const documentVisible = ref(document.visibilityState === 'visible')
 const refreshMode = ref<RefreshMode>('standard')
 const payMethod = ref<PayMethod>('alipay')
 const searchOptions = ref<FundSearchItem[]>([])
 const watchlist = ref<FundEstimateRow[]>([])
+const customGroups = ref<FundGroup[]>([])
+const activeGroupKey = ref('all')
+const groupFormName = ref('')
+const savingGroup = ref(false)
+const editingGroup = ref<FundGroup | null>(null)
 const lastUpdated = ref('')
 const newHoldingAmount = ref(10000)
 const userInfo = ref<UserInfo | null>(null)
@@ -367,6 +472,8 @@ const selectedRow = ref<FundEstimateRow | null>(null)
 let searchTimer: number | undefined
 let refreshTimer: number | undefined
 let controller: AbortController | null = null
+let syncingLocalAndCloud = false
+let mirrorNextCloudSnapshot = false
 
 const refreshMs = computed(() => {
   if (refreshMode.value === 'fast') {
@@ -381,6 +488,31 @@ const totalHolding = computed(() => watchlist.value.reduce((sum, item) => sum + 
 const totalProfit = computed(() => watchlist.value.reduce((sum, item) => sum + Number(item.estimateProfit || 0), 0))
 const totalMarketValue = computed(() => watchlist.value.reduce((sum, item) => sum + Number(item.estimateMarketValue || item.holdingAmount || 0), 0))
 const portfolioChange = computed(() => totalHolding.value ? totalProfit.value / totalHolding.value * 100 : 0)
+const groupTabs = computed<GroupTab[]>(() => [
+  { key: 'all', name: '全部', count: new Set(watchlist.value.map((item) => item.code)).size, type: 'all' },
+  { key: 'watch', name: '自选', count: watchlist.value.length, type: 'watch' },
+  ...customGroups.value.map((group) => ({
+    key: `custom-${group.id}`,
+    id: group.id,
+    name: group.name,
+    count: countFundsByGroup(group.id),
+    type: 'custom' as const
+  }))
+])
+const activeGroup = computed(() => groupTabs.value.find((group) => group.key === activeGroupKey.value) || groupTabs.value[0])
+const filteredWatchlist = computed(() => {
+  const group = activeGroup.value
+  if (!group || group.type === 'all' || group.type === 'watch') {
+    return watchlist.value
+  }
+  return watchlist.value.filter((item) => (item.groupIds || []).includes(group.id || 0))
+})
+const emptyDescription = computed(() => {
+  if (watchlist.value.length === 0) {
+    return '暂无自选基金，搜索基金后添加到工作台。'
+  }
+  return '当前分组暂无基金。'
+})
 const staleSeconds = computed(() => {
   if (!lastUpdated.value) {
     return null
@@ -426,6 +558,7 @@ const currentPayImage = computed(() => payMethod.value === 'alipay' ? alipayPay 
 onMounted(() => {
   document.addEventListener('visibilitychange', handleVisibilityChange)
   void loadUserProfile()
+  void loadGroups()
   void loadWatchlist(true)
 })
 
@@ -505,6 +638,25 @@ async function loadUserProfile() {
   }
 }
 
+async function loadGroups() {
+  if (!hasToken()) {
+    customGroups.value = readLocalSnapshot().groups.map((group) => ({ ...group, count: 0 }))
+    return
+  }
+  try {
+    customGroups.value = await listFundGroups()
+    if (!groupTabs.value.some((group) => group.key === activeGroupKey.value)) {
+      activeGroupKey.value = 'all'
+    }
+  } catch (error) {
+    if (isUnauthorized(error)) {
+      customGroups.value = []
+      return
+    }
+    handleError(error, '加载基金分组失败')
+  }
+}
+
 function remoteSearch(keyword: string) {
   window.clearTimeout(searchTimer)
   searchTimer = window.setTimeout(async () => {
@@ -535,7 +687,18 @@ async function addSelectedFund() {
   }
   adding.value = true
   try {
-    await addWatchFund(option.code, option.name, newHoldingAmount.value)
+    if (hasToken()) {
+      await addWatchFund(option.code, option.name, newHoldingAmount.value)
+      mirrorNextCloudSnapshot = true
+    } else {
+      upsertLocalFund({
+        id: Date.now(),
+        code: option.code,
+        name: option.name,
+        holdingAmount: newHoldingAmount.value,
+        groupIds: []
+      })
+    }
     selectedCode.value = ''
     searchOptions.value = []
     ElMessage.success('已添加自选基金')
@@ -556,8 +719,19 @@ async function loadWatchlist(manual: boolean) {
   refreshing.value = true
   authenticated.value = hasToken()
   loadError.value = ''
+  if (!authenticated.value) {
+    const snapshot = readLocalSnapshot()
+    applySnapshotToPage(snapshot)
+    unauthorized.value = false
+    refreshing.value = false
+    initialLoading.value = false
+    lastUpdated.value = snapshotHasData(snapshot) ? '本地缓存' : ''
+    return
+  }
   try {
-    watchlist.value = await listWatchFunds(controller.signal)
+    const cloudSnapshot = await fetchCloudSnapshot(controller.signal)
+    const displaySnapshot = await reconcileLocalAndCloud(cloudSnapshot)
+    applySnapshotToPage(displaySnapshot)
     unauthorized.value = false
     lastUpdated.value = watchlist.value.find((item) => item.estimateTime)?.estimateTime
       || new Date().toLocaleString('zh-CN', { hour12: false })
@@ -567,8 +741,11 @@ async function loadWatchlist(manual: boolean) {
     }
     if (isUnauthorized(error)) {
       unauthorized.value = true
-      watchlist.value = []
-      lastUpdated.value = ''
+      clearAuthStorage()
+      authenticated.value = false
+      applySnapshotToPage(readLocalSnapshot())
+      unauthorized.value = false
+      lastUpdated.value = watchlist.value.length ? '本地缓存' : ''
     } else {
       loadError.value = error instanceof Error ? error.message : '加载自选基金失败'
       if (manual) {
@@ -582,9 +759,109 @@ async function loadWatchlist(manual: boolean) {
   }
 }
 
+async function saveFundGroups(row: FundEstimateRow) {
+  try {
+    row.groupIds = row.groupIds || []
+    if (hasToken()) {
+      await updateWatchFundGroups(row.code, row.groupIds)
+      mirrorNextCloudSnapshot = true
+      await loadGroups()
+      persistCurrentSnapshot()
+    } else {
+      persistCurrentSnapshot()
+    }
+    ElMessage.success('基金分组已保存')
+  } catch (error) {
+    handleError(error, '保存基金分组失败')
+    await loadWatchlist(true)
+  }
+}
+
+function openCreateGroup() {
+  editingGroup.value = null
+  groupFormName.value = ''
+  groupDialogVisible.value = true
+}
+
+function openEditGroup(group: FundGroup) {
+  editingGroup.value = group
+  groupFormName.value = group.name
+  groupDialogVisible.value = true
+}
+
+async function saveGroup() {
+  const name = groupFormName.value.trim()
+  if (!name) {
+    ElMessage.warning('请输入分组名称')
+    return
+  }
+  savingGroup.value = true
+  try {
+    if (editingGroup.value) {
+      if (hasToken()) {
+        await updateFundGroup(editingGroup.value.id, name)
+        mirrorNextCloudSnapshot = true
+      } else {
+        updateLocalGroup(editingGroup.value.id, name)
+      }
+      ElMessage.success('分组已重命名')
+    } else {
+      const group = hasToken()
+        ? await createFundGroup(name)
+        : createLocalGroup(name)
+      if (hasToken()) {
+        mirrorNextCloudSnapshot = true
+      }
+      activeGroupKey.value = `custom-${group.id}`
+      ElMessage.success('分组已新增')
+    }
+    groupDialogVisible.value = false
+    await loadGroups()
+    if (hasToken()) {
+      persistCurrentSnapshot()
+    }
+  } catch (error) {
+    handleError(error, '保存分组失败')
+  } finally {
+    savingGroup.value = false
+  }
+}
+
+async function removeGroup(group: FundGroup) {
+  try {
+    await ElMessageBox.confirm(`确定删除分组“${group.name}”吗？该操作不会删除基金。`, '删除分组', {
+      type: 'warning',
+      confirmButtonText: '删除',
+      cancelButtonText: '取消'
+    })
+    if (hasToken()) {
+      await deleteFundGroup(group.id)
+      mirrorNextCloudSnapshot = true
+    } else {
+      deleteLocalGroup(group.id)
+    }
+    if (activeGroupKey.value === `custom-${group.id}`) {
+      activeGroupKey.value = 'all'
+    }
+    ElMessage.success('分组已删除')
+    await loadGroups()
+    await loadWatchlist(true)
+  } catch (error) {
+    if (error === 'cancel' || error === 'close') {
+      return
+    }
+    handleError(error, '删除分组失败')
+  }
+}
+
 async function saveHolding(row: FundEstimateRow) {
   try {
-    await updateFundHolding(row.code, row.holdingAmount || 0)
+    if (hasToken()) {
+      await updateFundHolding(row.code, row.holdingAmount || 0)
+      mirrorNextCloudSnapshot = true
+    } else {
+      persistCurrentSnapshot()
+    }
     ElMessage.success('持有金额已保存')
     await loadWatchlist(true)
   } catch (error) {
@@ -599,7 +876,12 @@ async function removeFund(code: string) {
       confirmButtonText: '删除',
       cancelButtonText: '取消'
     })
-    await deleteWatchFund(code)
+    if (hasToken()) {
+      await deleteWatchFund(code)
+      mirrorNextCloudSnapshot = true
+    } else {
+      deleteLocalFund(code)
+    }
     ElMessage.success('已删除自选基金')
     await loadWatchlist(true)
   } catch (error) {
@@ -607,6 +889,259 @@ async function removeFund(code: string) {
       return
     }
     handleError(error, '删除基金失败')
+  }
+}
+
+async function fetchCloudSnapshot(signal?: AbortSignal): Promise<FundSnapshot> {
+  const [funds, groups] = await Promise.all([
+    listWatchFunds(signal),
+    listFundGroups()
+  ])
+  return {
+    funds: funds.map((fund) => ({
+      code: fund.code,
+      name: fund.name,
+      holdingAmount: Number(fund.holdingAmount || 0),
+      groupIds: fund.groupIds || []
+    })),
+    groups: groups.map((group) => ({
+      id: group.id,
+      name: group.name
+    }))
+  }
+}
+
+async function reconcileLocalAndCloud(cloudSnapshot: FundSnapshot): Promise<FundSnapshot> {
+  const localSnapshot = readLocalSnapshot()
+  const localHasData = snapshotHasData(localSnapshot)
+  const cloudHasData = snapshotHasData(cloudSnapshot)
+  if (mirrorNextCloudSnapshot) {
+    mirrorNextCloudSnapshot = false
+    saveLocalSnapshot(cloudSnapshot)
+    return cloudSnapshot
+  }
+  if (syncingLocalAndCloud || snapshotsEqual(localSnapshot, cloudSnapshot)) {
+    saveLocalSnapshot(cloudSnapshot)
+    return cloudSnapshot
+  }
+  if (!localHasData) {
+    saveLocalSnapshot(cloudSnapshot)
+    return cloudSnapshot
+  }
+  if (!cloudHasData) {
+    syncingLocalAndCloud = true
+    try {
+      await replaceCloudSnapshot(localSnapshot)
+      ElMessage.success('本地数据已同步到云端')
+      const refreshed = await fetchCloudSnapshot()
+      saveLocalSnapshot(refreshed)
+      return refreshed
+    } finally {
+      syncingLocalAndCloud = false
+    }
+  }
+
+  const useLocal = await askLocalOrCloud()
+  if (!useLocal) {
+    saveLocalSnapshot(cloudSnapshot)
+    ElMessage.success('已使用云端数据覆盖本地')
+    return cloudSnapshot
+  }
+  const merge = await askLocalSyncMode()
+  syncingLocalAndCloud = true
+  try {
+    if (merge) {
+      await mergeCloudSnapshot(localSnapshot)
+      ElMessage.success('本地数据已追加到云端')
+    } else {
+      await replaceCloudSnapshot(localSnapshot)
+      ElMessage.success('本地数据已替换云端')
+    }
+    const refreshed = await fetchCloudSnapshot()
+    saveLocalSnapshot(refreshed)
+    return refreshed
+  } finally {
+    syncingLocalAndCloud = false
+  }
+}
+
+async function askLocalOrCloud() {
+  try {
+    await ElMessageBox.confirm('检测到当前浏览器本地数据和登录用户云端数据都存在，请选择使用哪一份数据。', '数据同步', {
+      confirmButtonText: '本地覆盖云端',
+      cancelButtonText: '云端覆盖本地',
+      distinguishCancelAndClose: true,
+      closeOnClickModal: false,
+      closeOnPressEscape: false,
+      showClose: false,
+      type: 'warning'
+    })
+    return true
+  } catch (action) {
+    return action !== 'close' ? false : false
+  }
+}
+
+async function askLocalSyncMode() {
+  try {
+    await ElMessageBox.confirm('请选择本地数据同步到云端的方式。', '本地覆盖云端', {
+      confirmButtonText: '追加数据到云端',
+      cancelButtonText: '替换云端数据',
+      distinguishCancelAndClose: true,
+      closeOnClickModal: false,
+      closeOnPressEscape: false,
+      showClose: false,
+      type: 'warning'
+    })
+    return true
+  } catch (action) {
+    return action === 'cancel' ? false : false
+  }
+}
+
+function applySnapshotToPage(snapshot: FundSnapshot) {
+  customGroups.value = snapshot.groups.map((group) => ({ ...group, count: 0 }))
+  watchlist.value = snapshot.funds.map((fund, index) => ({
+    id: index + 1,
+    code: fund.code,
+    name: fund.name,
+    holdingAmount: Number(fund.holdingAmount || 0),
+    groupIds: fund.groupIds || []
+  }))
+  if (!groupTabs.value.some((group) => group.key === activeGroupKey.value)) {
+    activeGroupKey.value = 'all'
+  }
+}
+
+function readLocalSnapshot(): FundSnapshot {
+  if (typeof window === 'undefined') {
+    return emptySnapshot()
+  }
+  try {
+    const parsed = JSON.parse(localStorage.getItem(localSnapshotKey) || '')
+    return normalizeSnapshot(parsed)
+  } catch {
+    return emptySnapshot()
+  }
+}
+
+function saveLocalSnapshot(snapshot: FundSnapshot) {
+  localStorage.setItem(localSnapshotKey, JSON.stringify(normalizeSnapshot(snapshot)))
+}
+
+function persistCurrentSnapshot() {
+  saveLocalSnapshot({
+    funds: watchlist.value.map((fund) => ({
+      code: fund.code,
+      name: fund.name,
+      holdingAmount: Number(fund.holdingAmount || 0),
+      groupIds: fund.groupIds || []
+    })),
+    groups: customGroups.value.map((group) => ({
+      id: group.id,
+      name: group.name
+    }))
+  })
+}
+
+function upsertLocalFund(fund: FundEstimateRow) {
+  const index = watchlist.value.findIndex((item) => item.code === fund.code)
+  if (index >= 0) {
+    watchlist.value[index] = {
+      ...watchlist.value[index],
+      name: fund.name,
+      holdingAmount: fund.holdingAmount,
+      groupIds: watchlist.value[index].groupIds || []
+    }
+  } else {
+    watchlist.value.unshift(fund)
+  }
+  persistCurrentSnapshot()
+}
+
+function deleteLocalFund(code: string) {
+  watchlist.value = watchlist.value.filter((fund) => fund.code !== code)
+  persistCurrentSnapshot()
+}
+
+function createLocalGroup(name: string): FundGroup {
+  ensureLocalGroupNameAvailable(name)
+  const group = { id: Date.now(), name, count: 0 }
+  customGroups.value.push(group)
+  persistCurrentSnapshot()
+  return group
+}
+
+function updateLocalGroup(id: number, name: string) {
+  ensureLocalGroupNameAvailable(name, id)
+  const group = customGroups.value.find((item) => item.id === id)
+  if (group) {
+    group.name = name
+  }
+  persistCurrentSnapshot()
+}
+
+function deleteLocalGroup(id: number) {
+  customGroups.value = customGroups.value.filter((group) => group.id !== id)
+  watchlist.value.forEach((fund) => {
+    fund.groupIds = (fund.groupIds || []).filter((groupId) => groupId !== id)
+  })
+  persistCurrentSnapshot()
+}
+
+function ensureLocalGroupNameAvailable(name: string, excludeId?: number) {
+  if (name === '全部' || name === '自选') {
+    throw new Error('系统分组不能修改')
+  }
+  if (customGroups.value.some((group) => group.name === name && group.id !== excludeId)) {
+    throw new Error('基金分组名称已存在')
+  }
+}
+
+function normalizeSnapshot(snapshot: FundSnapshot): FundSnapshot {
+  const groups = Array.isArray(snapshot?.groups) ? snapshot.groups : []
+  const funds = Array.isArray(snapshot?.funds) ? snapshot.funds : []
+  const groupIds = new Set(groups.map((group) => Number(group.id)).filter((id) => Number.isFinite(id)))
+  return {
+    groups: groups
+      .filter((group) => group?.name)
+      .map((group) => ({ id: Number(group.id), name: String(group.name) })),
+    funds: funds
+      .filter((fund) => fund?.code)
+      .map((fund) => ({
+        code: String(fund.code),
+        name: String(fund.name || fund.code),
+        holdingAmount: Number(fund.holdingAmount || 0),
+        groupIds: (fund.groupIds || []).map(Number).filter((id) => groupIds.has(id))
+      }))
+  }
+}
+
+function emptySnapshot(): FundSnapshot {
+  return { funds: [], groups: [] }
+}
+
+function snapshotHasData(snapshot: FundSnapshot) {
+  return snapshot.funds.length > 0 || snapshot.groups.length > 0
+}
+
+function snapshotsEqual(left: FundSnapshot, right: FundSnapshot) {
+  return JSON.stringify(snapshotComparable(left)) === JSON.stringify(snapshotComparable(right))
+}
+
+function snapshotComparable(snapshot: FundSnapshot) {
+  return {
+    funds: [...snapshot.funds]
+      .map((fund) => ({
+        code: fund.code,
+        name: fund.name,
+        holdingAmount: Number(fund.holdingAmount || 0),
+        groupIds: [...(fund.groupIds || [])].sort((a, b) => a - b)
+      }))
+      .sort((a, b) => a.code.localeCompare(b.code)),
+    groups: [...snapshot.groups]
+      .map((group) => ({ id: group.id, name: group.name }))
+      .sort((a, b) => a.id - b.id)
   }
 }
 
@@ -623,9 +1158,10 @@ async function handleLogout() {
     userInfo.value = null
     selectedCode.value = ''
     searchOptions.value = []
-    watchlist.value = []
-    lastUpdated.value = ''
-    unauthorized.value = true
+    applySnapshotToPage(readLocalSnapshot())
+    activeGroupKey.value = 'all'
+    lastUpdated.value = watchlist.value.length ? '本地缓存' : ''
+    unauthorized.value = false
     ElMessage.success('已退出登录')
   }
 }
@@ -660,6 +1196,10 @@ function toneClass(value: number) {
     return 'down'
   }
   return ''
+}
+
+function countFundsByGroup(groupId: number) {
+  return watchlist.value.filter((item) => (item.groupIds || []).includes(groupId)).length
 }
 
 function formatPercent(value: number) {

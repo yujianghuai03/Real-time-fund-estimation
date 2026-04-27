@@ -31,6 +31,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthTokenEndpoint {
 
     private static final String BEARER_PREFIX = OAuth2AccessToken.TokenType.BEARER.getValue() + " ";
+    private static final String UNAUTHORIZED_MESSAGE = "权限不足，请登录后再试！";
 
     private final OAuth2AuthorizationService authorizationService;
     private final JwtDecoder jwtDecoder;
@@ -70,7 +71,7 @@ public class AuthTokenEndpoint {
             HttpServletResponse response) {
         if (!StringUtils.hasText(token)) {
             response.setStatus(HttpStatus.UNAUTHORIZED.value());
-            return R.fail(401, "token is missing");
+            return R.fail(401, UNAUTHORIZED_MESSAGE);
         }
 
         OAuth2Authorization authorization = authorizationService.findByToken(token, OAuth2TokenType.ACCESS_TOKEN);
@@ -83,7 +84,7 @@ public class AuthTokenEndpoint {
             return R.ok(jwt.getClaims());
         } catch (RuntimeException exception) {
             response.setStatus(HttpStatus.UNAUTHORIZED.value());
-            return R.fail(401, "token is invalid");
+            return R.fail(401, UNAUTHORIZED_MESSAGE);
         }
     }
 

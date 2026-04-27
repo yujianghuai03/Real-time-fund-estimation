@@ -345,6 +345,37 @@ CREATE TABLE IF NOT EXISTS `biz_user_fund` (
     KEY `idx_biz_user_fund_user` (`tenant_id`, `username`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='用户自选基金表';
 
+CREATE TABLE IF NOT EXISTS `biz_user_fund_group` (
+    `id` BIGINT NOT NULL COMMENT '基金分组ID',
+    `tenant_id` BIGINT NOT NULL COMMENT '租户ID',
+    `username` VARCHAR(64) NOT NULL COMMENT '用户名',
+    `group_name` VARCHAR(64) NOT NULL COMMENT '分组名称',
+    `sort_order` INT NOT NULL DEFAULT 0 COMMENT '排序',
+    `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '创建人',
+    `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '修改人',
+    `create_time` datetime(0) NULL DEFAULT CURRENT_TIMESTAMP(0) COMMENT '创建时间',
+    `update_time` datetime(0) NULL DEFAULT CURRENT_TIMESTAMP(0) ON UPDATE CURRENT_TIMESTAMP(0) COMMENT '更新时间',
+    `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT '0' COMMENT '删除标记，0未删除，1已删除',
+    PRIMARY KEY (`id`),
+    KEY `idx_biz_user_fund_group_user` (`tenant_id`, `username`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='用户基金分组表';
+
+CREATE TABLE IF NOT EXISTS `biz_user_fund_group_relation` (
+    `id` BIGINT NOT NULL COMMENT '基金分组关系ID',
+    `tenant_id` BIGINT NOT NULL COMMENT '租户ID',
+    `username` VARCHAR(64) NOT NULL COMMENT '用户名',
+    `group_id` BIGINT NOT NULL COMMENT '分组ID',
+    `fund_code` VARCHAR(32) NOT NULL COMMENT '基金代码',
+    `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '创建人',
+    `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '修改人',
+    `create_time` datetime(0) NULL DEFAULT CURRENT_TIMESTAMP(0) COMMENT '创建时间',
+    `update_time` datetime(0) NULL DEFAULT CURRENT_TIMESTAMP(0) ON UPDATE CURRENT_TIMESTAMP(0) COMMENT '更新时间',
+    `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT '0' COMMENT '删除标记，0未删除，1已删除',
+    PRIMARY KEY (`id`),
+    KEY `idx_biz_user_fund_group_relation_user` (`tenant_id`, `username`),
+    KEY `idx_biz_user_fund_group_relation_group` (`tenant_id`, `group_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='用户基金分组关系表';
+
 INSERT INTO `sys_tenant` (`id`, `tenant_id`, `tenant_code`, `tenant_name`, `contact_name`, `contact_phone`, `status`)
 VALUES (1, 0, 'demo', '默认租户', '管理员', '13800000000', 1)
 ON DUPLICATE KEY UPDATE `tenant_name` = VALUES(`tenant_name`), `status` = VALUES(`status`);

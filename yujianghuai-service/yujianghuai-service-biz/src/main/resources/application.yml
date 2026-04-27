@@ -41,5 +41,6 @@ app:
     ignore-paths:
       - /actuator
       - /error
+      - /api/funds/search
     ignore-tables:
       - sys_tenant

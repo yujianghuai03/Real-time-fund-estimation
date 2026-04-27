@@ -16,6 +16,8 @@ import org.springframework.stereotype.Service;
 @Service
 public class TokenService {
 
+    private static final String UNAUTHORIZED_MESSAGE = "权限不足，请登录后再试！";
+
     private final AuthProperties properties;
     private final JwtEncoder jwtEncoder;
     private final JwtDecoder jwtDecoder;
@@ -51,14 +53,14 @@ public class TokenService {
             Jwt jwt = jwtDecoder.decode(token);
             Instant expiresAt = jwt.getExpiresAt();
             if (expiresAt == null || expiresAt.isBefore(Instant.now())) {
-                throw new BizException(401, "token is expired");
+                throw new BizException(401, UNAUTHORIZED_MESSAGE);
             }
             Map<String, Object> claims = new LinkedHashMap<>(jwt.getClaims());
             return new TokenPayload(jwt.getSubject(), expiresAt.getEpochSecond(), claims);
         } catch (BizException exception) {
             throw exception;
         } catch (RuntimeException exception) {
-            throw new BizException(401, "token is invalid");
+            throw new BizException(401, UNAUTHORIZED_MESSAGE);
         }
     }
 

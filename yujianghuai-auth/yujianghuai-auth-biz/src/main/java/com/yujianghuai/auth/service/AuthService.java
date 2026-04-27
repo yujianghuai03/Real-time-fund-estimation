@@ -22,6 +22,7 @@ import org.springframework.util.StringUtils;
 public class AuthService {
 
     private static final String BEARER_PREFIX = "Bearer ";
+    private static final String UNAUTHORIZED_MESSAGE = "权限不足，请登录后再试！";
 
     private final AuthProperties properties;
     private final TokenService tokenService;
@@ -53,11 +54,11 @@ public class AuthService {
             try {
                 return userDetailsService.loadUserByUsername(request.getUsername());
             } catch (UsernameNotFoundException exception) {
-                throw new BizException(401, "username or password is invalid");
+                throw new BizException(401, UNAUTHORIZED_MESSAGE);
             }
         });
         if (!passwordEncoder.matches(request.getPassword(), userDetails.getPassword())) {
-            throw new BizException(401, "username or password is invalid");
+            throw new BizException(401, UNAUTHORIZED_MESSAGE);
         }
 
         ensureLoginPermission(tenant.getId(), request);
@@ -76,7 +77,7 @@ public class AuthService {
 
     public Map<String, Object> check(String authorization) {
         if (authorization == null || !authorization.startsWith(BEARER_PREFIX)) {
-            throw new BizException(401, "token is missing");
+            throw new BizException(401, UNAUTHORIZED_MESSAGE);
         }
 
         TokenService.TokenPayload payload = tokenService.verify(authorization.substring(BEARER_PREFIX.length()));
@@ -93,7 +94,7 @@ public class AuthService {
                         .eq(SysUser::getStatus, 1)
                         .last("limit 1")));
         if (user == null) {
-            throw new BizException(401, "username or password is invalid");
+            throw new BizException(401, UNAUTHORIZED_MESSAGE);
         }
 
         String loginType = normalizeLoginType(request.getLoginType());

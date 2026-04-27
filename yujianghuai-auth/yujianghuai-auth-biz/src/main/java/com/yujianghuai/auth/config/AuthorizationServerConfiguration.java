@@ -55,7 +55,6 @@ import org.springframework.security.oauth2.server.authorization.token.OAuth2Toke
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationConverter;
 import org.springframework.security.web.authentication.DelegatingAuthenticationConverter;
-import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.security.web.util.matcher.MediaTypeRequestMatcher;
@@ -63,6 +62,8 @@ import org.springframework.util.StringUtils;
 
 @Configuration
 public class AuthorizationServerConfiguration {
+
+    private static final String UNAUTHORIZED_MESSAGE = "权限不足，请登录后再试！";
 
     @Bean
     @Order(Ordered.HIGHEST_PRECEDENCE)
@@ -109,6 +110,7 @@ public class AuthorizationServerConfiguration {
                 .authorizeHttpRequests(registry -> registry
                         .requestMatchers(
                                 "/auth/**",
+                                "/api/funds/search",
                                 "/token/check_token",
                                 "/token/logout",
                                 "/v3/api-docs/**",
@@ -118,7 +120,12 @@ public class AuthorizationServerConfiguration {
                                 "/error").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(exceptions -> exceptions
-                        .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            response.setStatus(HttpStatus.UNAUTHORIZED.value());
+                            response.setCharacterEncoding("UTF-8");
+                            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                            response.getWriter().write("{\"code\":401,\"message\":\"" + UNAUTHORIZED_MESSAGE + "\",\"data\":null}");
+                        }))
                 .formLogin(Customizer.withDefaults())
                 .oauth2ResourceServer(resourceServer -> resourceServer.jwt(Customizer.withDefaults()))
                 .build();

@@ -26,6 +26,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class PasswordGrantTokenEndpointFilter extends OncePerRequestFilter {
 
+    private static final String UNAUTHORIZED_MESSAGE = "权限不足，请登录后再试！";
     private static final String TOKEN_ENDPOINT = "/oauth2/token";
     private static final String GRANT_TYPE = "password";
     private static final String TENANT_PARAM = "TENANT-ID";
@@ -76,7 +77,7 @@ public class PasswordGrantTokenEndpointFilter extends OncePerRequestFilter {
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
             objectMapper.writeValue(response.getWriter(), payload);
         } catch (BizException exception) {
-            writeOAuthError(response, HttpServletResponse.SC_UNAUTHORIZED, "invalid_grant", exception.getMessage());
+            writeOAuthError(response, HttpServletResponse.SC_UNAUTHORIZED, "invalid_grant", UNAUTHORIZED_MESSAGE);
         }
     }
 
@@ -92,7 +93,7 @@ public class PasswordGrantTokenEndpointFilter extends OncePerRequestFilter {
             String clientId = separatorIndex >= 0 ? credentials.substring(0, separatorIndex) : credentials;
             String clientSecret = separatorIndex >= 0 ? credentials.substring(separatorIndex + 1) : "";
             if (!configuredClientId.equals(clientId) || !configuredClientSecret.equals(clientSecret)) {
-                throw new BizException(401, "client is invalid");
+                throw new BizException(401, UNAUTHORIZED_MESSAGE);
             }
             return;
         }
@@ -101,7 +102,7 @@ public class PasswordGrantTokenEndpointFilter extends OncePerRequestFilter {
         String clientSecret = request.getParameter("client_secret");
         if (StringUtils.hasText(clientId) || StringUtils.hasText(clientSecret)) {
             if (!configuredClientId.equals(clientId) || !configuredClientSecret.equals(clientSecret)) {
-                throw new BizException(401, "client is invalid");
+                throw new BizException(401, UNAUTHORIZED_MESSAGE);
             }
         }
     }

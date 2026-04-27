@@ -1,7 +1,11 @@
 package com.yujianghuai.api.fund.controller;
 
 import com.yujianghuai.biz.fund.model.FundEstimateVO;
+import com.yujianghuai.biz.fund.model.FundGroupAssignRequest;
+import com.yujianghuai.biz.fund.model.FundGroupRequest;
+import com.yujianghuai.biz.fund.model.FundGroupVO;
 import com.yujianghuai.biz.fund.model.FundSearchVO;
+import com.yujianghuai.biz.fund.model.FundSnapshotRequest;
 import com.yujianghuai.biz.fund.model.FundWatchRequest;
 import com.yujianghuai.biz.fund.model.HoldingAmountRequest;
 import com.yujianghuai.biz.fund.service.UserFundService;
@@ -53,6 +57,33 @@ public class FundController {
         return R.ok(userFundService.listWithRealtimeEstimate(principal));
     }
 
+    @GetMapping("/groups")
+    @Operation(summary = "查询基金分组", description = "查询当前登录用户的自定义基金分组")
+    public R<List<FundGroupVO>> groups(Principal principal) {
+        return R.ok(userFundService.listGroups(principal));
+    }
+
+    @PostMapping("/groups")
+    @Operation(summary = "新增基金分组", description = "新增当前登录用户的自定义基金分组")
+    public R<FundGroupVO> createGroup(Principal principal, @Valid @RequestBody FundGroupRequest request) {
+        return R.ok(userFundService.createGroup(principal, request.getName()));
+    }
+
+    @PutMapping("/groups/{groupId}")
+    @Operation(summary = "修改基金分组", description = "修改当前登录用户的自定义基金分组名称")
+    public R<FundGroupVO> updateGroup(Principal principal,
+                                      @Parameter(description = "分组ID", required = true) @PathVariable Long groupId,
+                                      @Valid @RequestBody FundGroupRequest request) {
+        return R.ok(userFundService.updateGroup(principal, groupId, request.getName()));
+    }
+
+    @DeleteMapping("/groups/{groupId}")
+    @Operation(summary = "删除基金分组", description = "删除当前登录用户的自定义基金分组")
+    public R<Boolean> deleteGroup(Principal principal,
+                                  @Parameter(description = "分组ID", required = true) @PathVariable Long groupId) {
+        return R.ok(userFundService.deleteGroup(principal, groupId));
+    }
+
     /**
      * 新增自选基金。
      */
@@ -81,6 +112,26 @@ public class FundController {
                                             content = @Content(schema = @Schema(implementation = HoldingAmountRequest.class)))
                                     @Valid @RequestBody HoldingAmountRequest request) {
         return R.ok(userFundService.updateHolding(principal, code, request.getHoldingAmount()));
+    }
+
+    @PutMapping("/watchlist/{code}/groups")
+    @Operation(summary = "修改基金所属分组", description = "为当前登录用户的自选基金设置多个自定义分组")
+    public R<Boolean> updateFundGroups(Principal principal,
+                                       @Parameter(description = "基金代码", required = true) @PathVariable String code,
+                                       @Valid @RequestBody FundGroupAssignRequest request) {
+        return R.ok(userFundService.updateFundGroups(principal, code, request.getGroupIds()));
+    }
+
+    @PostMapping("/snapshot/replace")
+    @Operation(summary = "替换云端基金快照", description = "使用客户端快照完全替换当前用户的云端自选、分组与分组关系")
+    public R<Boolean> replaceSnapshot(Principal principal, @Valid @RequestBody FundSnapshotRequest request) {
+        return R.ok(userFundService.replaceFromSnapshot(principal, request));
+    }
+
+    @PostMapping("/snapshot/merge")
+    @Operation(summary = "追加云端基金快照", description = "将客户端快照追加合并到当前用户的云端自选、分组与分组关系")
+    public R<Boolean> mergeSnapshot(Principal principal, @Valid @RequestBody FundSnapshotRequest request) {
+        return R.ok(userFundService.mergeFromSnapshot(principal, request));
     }
 
     /**
