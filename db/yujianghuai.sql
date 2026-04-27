@@ -342,7 +342,6 @@ CREATE TABLE IF NOT EXISTS `biz_user_fund` (
     `update_time` datetime(0) NULL DEFAULT CURRENT_TIMESTAMP(0) ON UPDATE CURRENT_TIMESTAMP(0) COMMENT '更新时间',
     `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT '0' COMMENT '删除标记，0未删除，1已删除',
     PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_biz_user_fund_user_code` (`tenant_id`, `username`, `fund_code`),
     KEY `idx_biz_user_fund_user` (`tenant_id`, `username`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='用户自选基金表';
 
