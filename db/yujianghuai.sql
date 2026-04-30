@@ -336,6 +336,9 @@ CREATE TABLE IF NOT EXISTS `biz_user_fund` (
     `fund_name` VARCHAR(128) NOT NULL COMMENT '基金名称',
     `holding_amount` DECIMAL(18, 2) NOT NULL DEFAULT 0.00 COMMENT '持有金额',
     `holding_cost` DECIMAL(18, 2) NOT NULL DEFAULT 0.00 COMMENT '持仓成本',
+    `holding_cost_nav` DECIMAL(18, 4) NOT NULL DEFAULT 0.0000 COMMENT '持仓成本净值',
+    `holding_shares` DECIMAL(18, 4) NOT NULL DEFAULT 0.0000 COMMENT '持有份额',
+    `first_buy_date` DATE NULL COMMENT '首次买入日期',
     `sort_order` INT NOT NULL DEFAULT 0 COMMENT '排序',
     `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '创建人',
     `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '修改人',
@@ -349,11 +352,34 @@ CREATE TABLE IF NOT EXISTS `biz_user_fund` (
 ALTER TABLE `biz_user_fund`
     ADD COLUMN IF NOT EXISTS `holding_cost` DECIMAL(18, 2) NOT NULL DEFAULT 0.00 COMMENT '持仓成本' AFTER `holding_amount`;
 
+ALTER TABLE `biz_user_fund`
+    ADD COLUMN IF NOT EXISTS `holding_cost_nav` DECIMAL(18, 4) NOT NULL DEFAULT 0.0000 COMMENT '持仓成本净值' AFTER `holding_cost`;
+
+ALTER TABLE `biz_user_fund`
+    ADD COLUMN IF NOT EXISTS `holding_shares` DECIMAL(18, 4) NOT NULL DEFAULT 0.0000 COMMENT '持有份额' AFTER `holding_cost_nav`;
+
+SET @biz_user_fund_first_buy_date_exists := (
+    SELECT COUNT(*)
+    FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'biz_user_fund'
+      AND COLUMN_NAME = 'first_buy_date'
+);
+SET @biz_user_fund_first_buy_date_sql := IF(
+    @biz_user_fund_first_buy_date_exists = 0,
+    'ALTER TABLE `biz_user_fund` ADD COLUMN `first_buy_date` DATE NULL COMMENT ''首次买入日期'' AFTER `holding_shares`',
+    'SELECT 1'
+);
+PREPARE biz_user_fund_first_buy_date_stmt FROM @biz_user_fund_first_buy_date_sql;
+EXECUTE biz_user_fund_first_buy_date_stmt;
+DEALLOCATE PREPARE biz_user_fund_first_buy_date_stmt;
+
 CREATE TABLE IF NOT EXISTS `biz_user_fund_group` (
     `id` BIGINT NOT NULL COMMENT '基金分组ID',
     `tenant_id` BIGINT NOT NULL COMMENT '租户ID',
     `username` VARCHAR(64) NOT NULL COMMENT '用户名',
     `group_name` VARCHAR(64) NOT NULL COMMENT '分组名称',
+    `group_type` VARCHAR(16) NOT NULL DEFAULT 'CUSTOM' COMMENT '分组类型，SYSTEM系统分组，CUSTOM自定义分组',
     `sort_order` INT NOT NULL DEFAULT 0 COMMENT '排序',
     `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '创建人',
     `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '修改人',
@@ -363,6 +389,64 @@ CREATE TABLE IF NOT EXISTS `biz_user_fund_group` (
     PRIMARY KEY (`id`),
     KEY `idx_biz_user_fund_group_user` (`tenant_id`, `username`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='用户基金分组表';
+
+SET @biz_user_fund_group_type_exists := (
+    SELECT COUNT(*)
+    FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'biz_user_fund_group'
+      AND COLUMN_NAME = 'group_type'
+);
+SET @biz_user_fund_group_type_sql := IF(
+    @biz_user_fund_group_type_exists = 0,
+    'ALTER TABLE `biz_user_fund_group` ADD COLUMN `group_type` VARCHAR(16) NOT NULL DEFAULT ''CUSTOM'' COMMENT ''分组类型，SYSTEM系统分组，CUSTOM自定义分组'' AFTER `group_name`',
+    'SELECT 1'
+);
+PREPARE biz_user_fund_group_type_stmt FROM @biz_user_fund_group_type_sql;
+EXECUTE biz_user_fund_group_type_stmt;
+DEALLOCATE PREPARE biz_user_fund_group_type_stmt;
+
+UPDATE `biz_user_fund_group`
+SET `group_type` = 'CUSTOM'
+WHERE `group_type` IS NULL OR `group_type` = '';
+
+INSERT INTO `biz_user_fund_group` (`id`, `tenant_id`, `username`, `group_name`, `group_type`, `sort_order`)
+SELECT CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3)) * 1000000 AS UNSIGNED) + seed.row_num,
+       seed.tenant_id,
+       seed.username,
+       seed.group_name,
+       'SYSTEM',
+       seed.sort_order
+FROM (
+    SELECT user_scope.tenant_id,
+           user_scope.username,
+           system_group.group_name,
+           system_group.sort_order,
+           ROW_NUMBER() OVER (ORDER BY user_scope.tenant_id, user_scope.username, system_group.sort_order) AS row_num
+    FROM (
+        SELECT DISTINCT `tenant_id`, `username`
+        FROM `biz_user_fund`
+        WHERE `del_flag` = '0'
+        UNION
+        SELECT DISTINCT `tenant_id`, `username`
+        FROM `biz_user_fund_group`
+        WHERE `del_flag` = '0'
+    ) user_scope
+    CROSS JOIN (
+        SELECT '全部' AS group_name, 0 AS sort_order
+        UNION ALL
+        SELECT '自选' AS group_name, 1 AS sort_order
+    ) system_group
+) seed
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM `biz_user_fund_group` existing_group
+    WHERE existing_group.`tenant_id` = seed.tenant_id
+      AND existing_group.`username` = seed.username
+      AND existing_group.`group_name` = seed.group_name
+      AND existing_group.`group_type` = 'SYSTEM'
+      AND existing_group.`del_flag` = '0'
+);
 
 CREATE TABLE IF NOT EXISTS `biz_user_fund_group_relation` (
     `id` BIGINT NOT NULL COMMENT '基金分组关系ID',

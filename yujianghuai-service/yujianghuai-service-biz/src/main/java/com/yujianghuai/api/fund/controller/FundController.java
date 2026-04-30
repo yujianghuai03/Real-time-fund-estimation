@@ -9,7 +9,8 @@ import com.yujianghuai.biz.fund.model.FundSnapshotRequest;
 import com.yujianghuai.biz.fund.model.FundTransactionVO;
 import com.yujianghuai.biz.fund.model.FundWatchRequest;
 import com.yujianghuai.biz.fund.model.HoldingAmountRequest;
-import com.yujianghuai.biz.fund.service.UserFundService;
+import com.yujianghuai.biz.fund.model.MarketIndexVO;
+import com.yujianghuai.api.fund.service.UserFundService;
 import com.yujianghuai.common.web.R;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -52,6 +53,12 @@ public class FundController {
     @Operation(summary = "实时估值", description = "根据基金代码查询公开实时估值")
     public R<FundEstimateVO> estimate(@Parameter(description = "基金代码", required = true) @PathVariable String code) {
         return R.ok(userFundService.estimate(code));
+    }
+
+    @GetMapping("/indices")
+    @Operation(summary = "市场指数", description = "查询常用市场指数行情")
+    public R<List<MarketIndexVO>> indices() {
+        return R.ok(userFundService.indices());
     }
 
     /**
@@ -123,7 +130,14 @@ public class FundController {
                                             required = true,
                                             content = @Content(schema = @Schema(implementation = HoldingAmountRequest.class)))
                                     @Valid @RequestBody HoldingAmountRequest request) {
-        return R.ok(userFundService.updateHolding(principal, code, request.getHoldingAmount(), request.getHoldingCost()));
+        return R.ok(userFundService.updateHolding(
+                principal,
+                code,
+                request.getHoldingAmount(),
+                request.getHoldingCost(),
+                request.getHoldingCostNav(),
+                request.getHoldingShares(),
+                request.getFirstBuyDate()));
     }
 
     @PutMapping("/watchlist/{code}/groups")

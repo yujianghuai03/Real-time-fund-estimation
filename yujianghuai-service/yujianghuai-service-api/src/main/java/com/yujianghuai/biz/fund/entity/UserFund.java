@@ -7,6 +7,7 @@ import com.yujianghuai.common.entity.BaseEntity;
 import com.yujianghuai.common.tenant.TenantTable;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -33,6 +34,12 @@ public class UserFund extends BaseEntity {
     private BigDecimal holdingAmount;
     @Schema(description = "持仓成本")
     private BigDecimal holdingCost;
+    @Schema(description = "持仓成本净值")
+    private BigDecimal holdingCostNav;
+    @Schema(description = "持有份额")
+    private BigDecimal holdingShares;
+    @Schema(description = "首次买入日期")
+    private LocalDate firstBuyDate;
     @Schema(description = "排序值")
     private Integer sortOrder;
 }

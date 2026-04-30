@@ -1,7 +1,10 @@
 package com.yujianghuai.biz.fund.model;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.Data;
@@ -24,6 +27,15 @@ public class FundEstimateVO {
 
     @Schema(description = "持仓成本")
     private BigDecimal holdingCost;
+
+    @Schema(description = "持仓成本净值")
+    private BigDecimal holdingCostNav;
+
+    @Schema(description = "持有份额")
+    private BigDecimal holdingShares;
+
+    @Schema(description = "首次买入日期")
+    private LocalDate firstBuyDate;
 
     @Schema(description = "净值日期")
     private String navDate;
@@ -50,5 +62,6 @@ public class FundEstimateVO {
     private String error;
 
     @Schema(description = "所属自定义分组ID列表")
+    @JsonSerialize(contentUsing = ToStringSerializer.class)
     private List<Long> groupIds = new ArrayList<>();
 }

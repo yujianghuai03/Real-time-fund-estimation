@@ -6,6 +6,8 @@ interface ApiResult<T> {
   data: T
 }
 
+export type FundGroupId = string | number
+
 export interface FundSearchItem {
   code: string
   name: string
@@ -21,6 +23,9 @@ export interface FundEstimateRow {
   name: string
   holdingAmount: number
   holdingCost?: number
+  holdingCostNav?: number
+  holdingShares?: number
+  firstBuyDate?: string
   navDate?: string
   previousNav?: number
   estimateNav?: number
@@ -29,13 +34,23 @@ export interface FundEstimateRow {
   estimateMarketValue?: number
   estimateTime?: string
   error?: string
-  groupIds?: number[]
+  groupIds?: FundGroupId[]
+}
+
+export interface MarketIndexRow {
+  code: string
+  name: string
+  price?: number
+  change?: number
+  changeRate?: number
 }
 
 export interface FundGroup {
-  id: number
+  id: FundGroupId
   name: string
   count: number
+  groupType?: 'SYSTEM' | 'CUSTOM' | string
+  editable?: boolean
 }
 
 export interface FundTransaction {
@@ -58,6 +73,9 @@ export interface FundSnapshot {
     name: string
     holdingAmount: number
     holdingCost?: number
+    holdingCostNav?: number
+    holdingShares?: number
+    firstBuyDate?: string
     navDate?: string
     previousNav?: number
     estimateNav?: number
@@ -66,10 +84,10 @@ export interface FundSnapshot {
     estimateMarketValue?: number
     estimateTime?: string
     error?: string
-    groupIds: number[]
+    groupIds: FundGroupId[]
   }>
   groups: Array<{
-    id: number
+    id: FundGroupId
     name: string
   }>
   transactions: FundTransaction[]
@@ -92,6 +110,11 @@ export async function estimateFund(code: string) {
   return response.data.data
 }
 
+export async function listMarketIndices() {
+  const response = await request.get<ApiResult<MarketIndexRow[]>>('/api/funds/indices')
+  return response.data.data
+}
+
 export async function listFundGroups() {
   const response = await request.get<ApiResult<FundGroup[]>>('/api/funds/groups')
   return response.data.data
@@ -107,30 +130,39 @@ export async function createFundGroup(name: string) {
   return response.data.data
 }
 
-export async function updateFundGroup(id: number, name: string) {
+export async function updateFundGroup(id: FundGroupId, name: string) {
   const response = await request.put<ApiResult<FundGroup>>(`/api/funds/groups/${id}`, { name })
   return response.data.data
 }
 
-export async function deleteFundGroup(id: number) {
+export async function deleteFundGroup(id: FundGroupId) {
   await request.delete(`/api/funds/groups/${id}`)
 }
 
-export async function addWatchFund(code: string, name: string, holdingAmount: number, holdingCost = 0) {
+export async function addWatchFund(code: string, name: string, holdingAmount: number, holdingCost = 0, holdingCostNav = 0, holdingShares = 0, firstBuyDate = '') {
   const response = await request.post<ApiResult<FundEstimateRow>>('/api/funds/watchlist', {
     code,
     name,
     holdingAmount,
-    holdingCost
+    holdingCost,
+    holdingCostNav,
+    holdingShares,
+    firstBuyDate: firstBuyDate || null
   })
   return response.data.data
 }
 
-export async function updateFundHolding(code: string, holdingAmount: number, holdingCost = 0) {
-  await request.put(`/api/funds/watchlist/${code}/holding`, { holdingAmount, holdingCost })
+export async function updateFundHolding(code: string, holdingAmount: number, holdingCost = 0, holdingCostNav = 0, holdingShares = 0, firstBuyDate = '') {
+  await request.put(`/api/funds/watchlist/${code}/holding`, {
+    holdingAmount,
+    holdingCost,
+    holdingCostNav,
+    holdingShares,
+    firstBuyDate: firstBuyDate || null
+  })
 }
 
-export async function updateWatchFundGroups(code: string, groupIds: number[]) {
+export async function updateWatchFundGroups(code: string, groupIds: FundGroupId[]) {
   await request.put(`/api/funds/watchlist/${code}/groups`, { groupIds })
 }
 

@@ -112,6 +112,7 @@ public class AuthorizationServerConfiguration {
                                 "/auth/**",
                                 "/api/funds/search",
                                 "/api/funds/estimate/**",
+                                "/api/funds/indices",
                                 "/token/check_token",
                                 "/token/logout",
                                 "/v3/api-docs/**",

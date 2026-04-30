@@ -31,6 +31,7 @@ feign:
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
   global-config:
     db-config:
       id-type: auto
@@ -43,5 +44,6 @@ app:
       - /error
       - /api/funds/search
       - /api/funds/estimate/**
+      - /api/funds/indices
     ignore-tables:
       - sys_tenant

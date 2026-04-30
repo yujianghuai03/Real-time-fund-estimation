@@ -1,4 +1,4 @@
-package com.yujianghuai.biz.fund.service;
+package com.yujianghuai.api.fund.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
@@ -19,11 +19,13 @@ import com.yujianghuai.biz.fund.model.FundSnapshotRequest;
 import com.yujianghuai.biz.fund.model.FundSnapshotTransaction;
 import com.yujianghuai.biz.fund.model.FundTransactionVO;
 import com.yujianghuai.biz.fund.model.FundWatchRequest;
+import com.yujianghuai.biz.fund.model.MarketIndexVO;
 import com.yujianghuai.common.exception.BizException;
 import com.yujianghuai.common.tenant.TenantContext;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.security.Principal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
@@ -42,6 +44,10 @@ import org.springframework.util.StringUtils;
 public class UserFundService {
 
     private static final String UNAUTHORIZED_MESSAGE = "权限不足，请登录后再试！";
+    private static final String GROUP_TYPE_SYSTEM = "SYSTEM";
+    private static final String GROUP_TYPE_CUSTOM = "CUSTOM";
+    private static final String SYSTEM_GROUP_ALL = "全部";
+    private static final String SYSTEM_GROUP_WATCH = "自选";
 
     private final UserFundMapper userFundMapper;
     private final UserFundGroupMapper userFundGroupMapper;
@@ -69,6 +75,10 @@ public class UserFundService {
         return fundMarketClient.estimate(normalizeCode(code));
     }
 
+    public List<MarketIndexVO> indices() {
+        return fundMarketClient.indices();
+    }
+
     public List<FundEstimateVO> listWithRealtimeEstimate(Principal principal) {
         String username = currentUsername(principal);
         List<UserFund> funds = userFundMapper.selectList(new LambdaQueryWrapper<UserFund>()
@@ -86,6 +96,7 @@ public class UserFundService {
                 .toList();
     }
 
+    @Transactional
     public List<FundGroupVO> listGroups(Principal principal) {
         String username = currentUsername(principal);
         Map<Long, Long> countMap = userFundGroupRelationMapper.selectList(new LambdaQueryWrapper<UserFundGroupRelation>()
@@ -94,9 +105,13 @@ public class UserFundService {
                 .stream()
                 .collect(Collectors.groupingBy(UserFundGroupRelation::getGroupId,
                         Collectors.mapping(UserFundGroupRelation::getFundCode, Collectors.collectingAndThen(Collectors.toSet(), (set) -> (long) set.size()))));
-        return listCustomGroups(username).stream()
+        long watchCount = countWatchFunds(username);
+        List<FundGroupVO> groups = new ArrayList<>();
+        ensureSystemGroups(username).forEach((group) -> groups.add(toGroupVO(group, watchCount)));
+        groups.addAll(listCustomGroups(username).stream()
                 .map((group) -> toGroupVO(group, countMap.getOrDefault(group.getId(), 0L)))
-                .toList();
+                .toList());
+        return groups;
     }
 
     public List<FundTransactionVO> listTransactions(Principal principal) {
@@ -120,6 +135,7 @@ public class UserFundService {
         group.setTenantId(currentTenantId());
         group.setUsername(username);
         group.setGroupName(groupName);
+        group.setGroupType(GROUP_TYPE_CUSTOM);
         group.setSortOrder(0);
         group.setDelFlag("0");
         userFundGroupMapper.insert(group);
@@ -192,6 +208,9 @@ public class UserFundService {
             exists.setFundName(resolveName(code, request.getName()));
             exists.setHoldingAmount(nullToZero(request.getHoldingAmount()));
             exists.setHoldingCost(nullToZero(request.getHoldingCost()));
+            exists.setHoldingCostNav(nullToZero(request.getHoldingCostNav()));
+            exists.setHoldingShares(nullToZero(request.getHoldingShares()));
+            exists.setFirstBuyDate(request.getFirstBuyDate());
             userFundMapper.updateById(exists);
             return toEstimate(exists);
         }
@@ -203,6 +222,9 @@ public class UserFundService {
         fund.setFundName(resolveName(code, request.getName()));
         fund.setHoldingAmount(nullToZero(request.getHoldingAmount()));
         fund.setHoldingCost(nullToZero(request.getHoldingCost()));
+        fund.setHoldingCostNav(nullToZero(request.getHoldingCostNav()));
+        fund.setHoldingShares(nullToZero(request.getHoldingShares()));
+        fund.setFirstBuyDate(request.getFirstBuyDate());
         fund.setSortOrder(0);
         fund.setDelFlag("0");
         userFundMapper.insert(fund);
@@ -225,11 +247,15 @@ public class UserFundService {
     }
 
     @Transactional
-    public Boolean updateHolding(Principal principal, String code, BigDecimal holdingAmount, BigDecimal holdingCost) {
+    public Boolean updateHolding(Principal principal, String code, BigDecimal holdingAmount, BigDecimal holdingCost,
+                                 BigDecimal holdingCostNav, BigDecimal holdingShares, LocalDate firstBuyDate) {
         String username = currentUsername(principal);
         int updated = userFundMapper.update(new LambdaUpdateWrapper<UserFund>()
                 .set(UserFund::getHoldingAmount, nullToZero(holdingAmount))
                 .set(UserFund::getHoldingCost, nullToZero(holdingCost))
+                .set(UserFund::getHoldingCostNav, nullToZero(holdingCostNav))
+                .set(UserFund::getHoldingShares, nullToZero(holdingShares))
+                .set(UserFund::getFirstBuyDate, firstBuyDate)
                 .eq(UserFund::getUsername, username)
                 .eq(UserFund::getFundCode, normalizeCode(code))
                 .eq(UserFund::getDelFlag, "0"));
@@ -257,8 +283,42 @@ public class UserFundService {
         return userFundGroupMapper.selectList(new LambdaQueryWrapper<UserFundGroup>()
                 .eq(UserFundGroup::getUsername, username)
                 .eq(UserFundGroup::getDelFlag, "0")
+                .and((wrapper) -> wrapper.eq(UserFundGroup::getGroupType, GROUP_TYPE_CUSTOM)
+                        .or().isNull(UserFundGroup::getGroupType)
+                        .or().eq(UserFundGroup::getGroupType, ""))
                 .orderByAsc(UserFundGroup::getSortOrder)
                 .orderByAsc(UserFundGroup::getId));
+    }
+
+    private List<UserFundGroup> ensureSystemGroups(String username) {
+        Map<String, UserFundGroup> existingGroupsByName = userFundGroupMapper.selectList(new LambdaQueryWrapper<UserFundGroup>()
+                        .eq(UserFundGroup::getUsername, username)
+                        .eq(UserFundGroup::getGroupType, GROUP_TYPE_SYSTEM)
+                        .eq(UserFundGroup::getDelFlag, "0"))
+                .stream()
+                .collect(Collectors.toMap(UserFundGroup::getGroupName, Function.identity(), (left, right) -> left));
+        return List.of(
+                ensureSystemGroup(username, SYSTEM_GROUP_ALL, 0, existingGroupsByName),
+                ensureSystemGroup(username, SYSTEM_GROUP_WATCH, 1, existingGroupsByName)
+        );
+    }
+
+    private UserFundGroup ensureSystemGroup(String username, String groupName, int sortOrder,
+                                            Map<String, UserFundGroup> existingGroupsByName) {
+        UserFundGroup existing = existingGroupsByName.get(groupName);
+        if (existing != null) {
+            return existing;
+        }
+        UserFundGroup group = new UserFundGroup();
+        group.setTenantId(currentTenantId());
+        group.setUsername(username);
+        group.setGroupName(groupName);
+        group.setGroupType(GROUP_TYPE_SYSTEM);
+        group.setSortOrder(sortOrder);
+        group.setDelFlag("0");
+        userFundGroupMapper.insert(group);
+        existingGroupsByName.put(groupName, group);
+        return group;
     }
 
     private void clearCloudData(String username) {
@@ -329,6 +389,7 @@ public class UserFundService {
         group.setTenantId(currentTenantId());
         group.setUsername(username);
         group.setGroupName(groupName);
+        group.setGroupType(GROUP_TYPE_CUSTOM);
         group.setSortOrder(0);
         group.setDelFlag("0");
         userFundGroupMapper.insert(group);
@@ -352,6 +413,9 @@ public class UserFundService {
         fund.setFundName(StringUtils.hasText(snapshotFund.getName()) ? snapshotFund.getName().trim() : code);
         fund.setHoldingAmount(nullToZero(snapshotFund.getHoldingAmount()));
         fund.setHoldingCost(nullToZero(snapshotFund.getHoldingCost()));
+        fund.setHoldingCostNav(nullToZero(snapshotFund.getHoldingCostNav()));
+        fund.setHoldingShares(nullToZero(snapshotFund.getHoldingShares()));
+        fund.setFirstBuyDate(snapshotFund.getFirstBuyDate());
         fund.setSortOrder(0);
         fund.setDelFlag("0");
         if (exists == null) {
@@ -383,6 +447,9 @@ public class UserFundService {
         UserFundGroup group = userFundGroupMapper.selectOne(new LambdaQueryWrapper<UserFundGroup>()
                 .eq(UserFundGroup::getUsername, username)
                 .eq(UserFundGroup::getId, groupId)
+                .and((wrapper) -> wrapper.eq(UserFundGroup::getGroupType, GROUP_TYPE_CUSTOM)
+                        .or().isNull(UserFundGroup::getGroupType)
+                        .or().eq(UserFundGroup::getGroupType, ""))
                 .eq(UserFundGroup::getDelFlag, "0"));
         if (group == null) {
             throw new BizException(404, "基金分组不存在");
@@ -404,6 +471,9 @@ public class UserFundService {
         LambdaQueryWrapper<UserFundGroup> wrapper = new LambdaQueryWrapper<UserFundGroup>()
                 .eq(UserFundGroup::getUsername, username)
                 .eq(UserFundGroup::getGroupName, groupName)
+                .and((item) -> item.eq(UserFundGroup::getGroupType, GROUP_TYPE_CUSTOM)
+                        .or().isNull(UserFundGroup::getGroupType)
+                        .or().eq(UserFundGroup::getGroupType, ""))
                 .eq(UserFundGroup::getDelFlag, "0");
         if (excludeId != null) {
             wrapper.ne(UserFundGroup::getId, excludeId);
@@ -434,11 +504,21 @@ public class UserFundService {
                 .size();
     }
 
+    private long countWatchFunds(String username) {
+        Long count = userFundMapper.selectCount(new LambdaQueryWrapper<UserFund>()
+                .eq(UserFund::getUsername, username)
+                .eq(UserFund::getDelFlag, "0"));
+        return count == null ? 0L : count;
+    }
+
     private FundGroupVO toGroupVO(UserFundGroup group, Long count) {
         FundGroupVO vo = new FundGroupVO();
         vo.setId(group.getId());
         vo.setName(group.getGroupName());
         vo.setCount(count);
+        String groupType = StringUtils.hasText(group.getGroupType()) ? group.getGroupType() : GROUP_TYPE_CUSTOM;
+        vo.setGroupType(groupType);
+        vo.setEditable(GROUP_TYPE_CUSTOM.equals(groupType));
         return vo;
     }
 
@@ -482,12 +562,37 @@ public class UserFundService {
                 ? estimate.getName() : fund.getFundName());
         estimate.setHoldingAmount(nullToZero(fund.getHoldingAmount()));
         estimate.setHoldingCost(nullToZero(fund.getHoldingCost()));
-        BigDecimal rate = estimate.getEstimateRate() == null ? BigDecimal.ZERO : estimate.getEstimateRate();
-        BigDecimal profit = estimate.getHoldingAmount().multiply(rate)
-                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        BigDecimal costNav = nullToZero(fund.getHoldingCostNav());
+        BigDecimal shares = nullToZero(fund.getHoldingShares());
+        if (shares.compareTo(BigDecimal.ZERO) == 0 && costNav.compareTo(BigDecimal.ZERO) > 0) {
+            shares = estimate.getHoldingAmount().divide(costNav, 4, RoundingMode.HALF_UP);
+        }
+        if (costNav.compareTo(BigDecimal.ZERO) == 0 && shares.compareTo(BigDecimal.ZERO) > 0) {
+            costNav = estimate.getHoldingAmount().divide(shares, 4, RoundingMode.HALF_UP);
+        }
+        BigDecimal latestNav = latestNav(estimate);
+        BigDecimal marketValue = shares.compareTo(BigDecimal.ZERO) > 0 && latestNav.compareTo(BigDecimal.ZERO) > 0
+                ? shares.multiply(latestNav).setScale(2, RoundingMode.HALF_UP)
+                : estimate.getHoldingAmount();
+        BigDecimal principal = estimate.getHoldingCost().compareTo(BigDecimal.ZERO) > 0
+                ? estimate.getHoldingCost()
+                : estimate.getHoldingAmount();
+        BigDecimal profit = marketValue.subtract(principal).setScale(2, RoundingMode.HALF_UP);
+        estimate.setHoldingAmount(marketValue);
+        estimate.setHoldingCostNav(costNav);
+        estimate.setHoldingShares(shares);
+        estimate.setFirstBuyDate(fund.getFirstBuyDate());
         estimate.setEstimateProfit(profit);
-        estimate.setEstimateMarketValue(estimate.getHoldingAmount().add(profit));
+        estimate.setEstimateMarketValue(marketValue);
         return estimate;
+    }
+
+    private BigDecimal latestNav(FundEstimateVO estimate) {
+        BigDecimal estimateNav = nullToZero(estimate.getEstimateNav());
+        if (estimateNav.compareTo(BigDecimal.ZERO) > 0) {
+            return estimateNav;
+        }
+        return nullToZero(estimate.getPreviousNav());
     }
 
     private String resolveName(String code, String requestName) {

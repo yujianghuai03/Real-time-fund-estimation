@@ -102,6 +102,17 @@
       </article>
     </section>
 
+    <section class="index-strip" aria-label="市场指数">
+      <article v-for="item in marketIndices" :key="item.code" class="index-card">
+        <span>{{ item.name }}</span>
+        <strong :class="toneClass(item.changeRate || 0)">{{ formatIndexPoint(item.price) }}</strong>
+        <small :class="toneClass(item.changeRate || 0)">
+          {{ formatSignedNumber(item.change || 0) }} / {{ formatPercent(item.changeRate || 0) }}
+        </small>
+      </article>
+      <el-empty v-if="!marketIndices.length && !indicesLoading" description="指数数据暂不可用" />
+    </section>
+
     <section class="refresh-panel" aria-label="刷新状态">
       <div>
         <el-icon :class="{ spinning: refreshing }"><Refresh /></el-icon>
@@ -164,9 +175,15 @@
           </button>
         </div>
         <div class="group-actions">
-          <el-button :icon="Plus" plain @click="openCreateGroup">新增分组</el-button>
           <el-button :icon="Setting" plain @click="groupManageVisible = true">管理分组</el-button>
         </div>
+      </div>
+
+      <div class="sort-toolbar">
+        <el-segmented v-model="sortKey" :options="sortOptions" />
+        <el-button :icon="sortOrder === 'asc' ? TopRight : BottomRight" plain @click="toggleSortOrder">
+          {{ sortOrder === 'asc' ? '升序' : '降序' }}
+        </el-button>
       </div>
 
       <el-skeleton v-if="initialLoading" :rows="6" animated />
@@ -174,7 +191,7 @@
       <template v-else>
         <el-empty v-if="!filteredWatchlist.length" :description="emptyDescription" />
 
-        <el-table v-else :data="filteredWatchlist" class="fund-table" row-key="code" @row-click="openTrend">
+        <el-table v-else :data="sortedWatchlist" class="fund-table" row-key="code" @row-click="openTrend">
           <el-table-column prop="code" label="代码" width="100" fixed />
           <el-table-column prop="name" label="基金名称" min-width="220" />
           <el-table-column label="所属分组" min-width="220">
@@ -208,8 +225,17 @@
               </div>
             </template>
           </el-table-column>
-          <el-table-column label="持仓成本" width="130">
-            <template #default="{ row }">{{ formatMoney(row.holdingCost || 0) }}</template>
+          <el-table-column label="成本净值" width="120">
+            <template #default="{ row }">{{ formatNumber(row.holdingCostNav) }}</template>
+          </el-table-column>
+          <el-table-column label="持有份额" width="130">
+            <template #default="{ row }">{{ formatShares(row.holdingShares) }}</template>
+          </el-table-column>
+          <el-table-column label="首次买入" width="130">
+            <template #default="{ row }">{{ row.firstBuyDate || '-' }}</template>
+          </el-table-column>
+          <el-table-column label="持有天数" width="110">
+            <template #default="{ row }">{{ row.firstBuyDate ? `${daysFromDate(row.firstBuyDate)}天` : '-' }}</template>
           </el-table-column>
           <el-table-column label="昨日净值" width="110">
             <template #default="{ row }">{{ formatNumber(row.previousNav) }}</template>
@@ -248,7 +274,7 @@
         </el-table>
 
         <div class="mobile-list">
-          <article v-for="row in filteredWatchlist" :key="row.code" class="fund-mobile-card" @click="openTrend(row)">
+          <article v-for="row in sortedWatchlist" :key="row.code" class="fund-mobile-card" @click="openTrend(row)">
             <div>
               <strong>{{ row.name }}</strong>
               <span>{{ row.code }} / {{ row.estimateTime || '-' }}</span>
@@ -279,8 +305,16 @@
                 </dd>
               </div>
               <div>
-                <dt>持仓成本</dt>
-                <dd>{{ formatMoney(row.holdingCost || 0) }}</dd>
+                <dt>成本净值</dt>
+                <dd>{{ formatNumber(row.holdingCostNav) }}</dd>
+              </div>
+              <div>
+                <dt>持有份额</dt>
+                <dd>{{ formatShares(row.holdingShares) }}</dd>
+              </div>
+              <div>
+                <dt>持有天数</dt>
+                <dd>{{ row.firstBuyDate ? `${daysFromDate(row.firstBuyDate)}天` : '-' }}</dd>
               </div>
               <div>
                 <dt>涨跌幅</dt>
@@ -312,7 +346,8 @@
         <el-descriptions :column="1" border>
           <el-descriptions-item label="基金">{{ selectedRow.code }} {{ selectedRow.name }}</el-descriptions-item>
           <el-descriptions-item label="持有金额">{{ formatMoney(selectedRow.holdingAmount || 0) }}</el-descriptions-item>
-          <el-descriptions-item label="持仓成本">{{ formatMoney(selectedRow.holdingCost || 0) }}</el-descriptions-item>
+          <el-descriptions-item label="成本净值">{{ formatNumber(selectedRow.holdingCostNav) }}</el-descriptions-item>
+          <el-descriptions-item label="持有份额">{{ formatShares(selectedRow.holdingShares) }}</el-descriptions-item>
           <el-descriptions-item label="预估市值">{{ formatMoney(selectedRow.estimateMarketValue || selectedRow.holdingAmount || 0) }}</el-descriptions-item>
           <el-descriptions-item label="预估盈亏">
             <span :class="toneClass(selectedRow.estimateProfit || 0)">{{ formatMoney(selectedRow.estimateProfit || 0) }}</span>
@@ -368,17 +403,68 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="groupManageVisible" title="管理分组" width="480px" align-center>
+    <el-dialog v-model="groupManageVisible" title="管理分组" width="520px" align-center @open="initGroupEditor" @closed="resetGroupEditor">
       <div class="group-manage-list">
-        <div v-for="group in customGroups" :key="group.id" class="group-manage-row">
-          <span>{{ group.name }}（{{ group.count }}）</span>
+        <div
+          v-for="group in visibleManagedGroups"
+          :key="group.clientId"
+          class="group-manage-row"
+          :class="{ 'is-system-group': !group.editable, 'is-pending-delete': group.deleted }"
+        >
+          <div class="group-manage-main">
+            <template v-if="group.editing && group.editable">
+              <el-input
+                v-model="group.name"
+                maxlength="30"
+                show-word-limit
+                placeholder="请输入分组名称"
+              />
+            </template>
+            <template v-else>
+              <span>{{ group.name }}（{{ group.count }}）</span>
+            </template>
+          </div>
           <div>
-            <el-button link type="primary" @click="openEditGroup(group)">重命名</el-button>
-            <el-button link type="danger" @click="removeGroup(group)">删除</el-button>
+            <template v-if="group.editable">
+              <el-button
+                link
+                type="primary"
+                @click="renameGroupRow(group)"
+              >
+                重命名
+              </el-button>
+              <el-button
+                link
+                type="danger"
+                @click="deleteGroupRow(group)"
+              >
+                删除
+              </el-button>
+            </template>
+            <template v-else>
+              <el-tooltip content="系统字段不可删除" placement="top">
+                <span class="disabled-group-action">
+                  <el-button link type="primary" disabled>重命名</el-button>
+                </span>
+              </el-tooltip>
+              <el-tooltip content="系统字段不可删除" placement="top">
+                <span class="disabled-group-action">
+                  <el-button link type="danger" disabled>删除</el-button>
+                </span>
+              </el-tooltip>
+            </template>
           </div>
         </div>
-        <el-empty v-if="!customGroups.length" description="暂无自定义分组" />
+        <button class="add-group-row" type="button" @click="addGroupEditRow">
+          <el-icon><Plus /></el-icon>
+        </button>
+        <el-empty v-if="!visibleManagedGroups.length" description="暂无分组" />
       </div>
+      <template #footer>
+        <div class="group-manage-footer">
+          <el-button type="primary" :loading="savingGroup" @click="saveGroupEdits">完成</el-button>
+        </div>
+      </template>
     </el-dialog>
 
     <el-dialog v-model="batchGroupDialogVisible" title="选择分组" width="460px" align-center>
@@ -448,17 +534,55 @@
 
     <el-dialog v-model="tradeFormVisible" :title="activeTradeType" width="520px" align-center>
       <el-form label-width="110px">
-        <el-form-item :label="activeTradeType === '编辑持仓' ? '新持仓金额' : '操作金额'">
-          <el-input-number v-model="tradeAmount" :min="0" :precision="2" :step="1000" />
-        </el-form-item>
         <template v-if="activeTradeType === '编辑持仓'">
-          <el-form-item label="收益金额">
-            <el-input-number v-model="tradeProfitAmount" :precision="2" :step="1000" />
+          <el-form-item label-width="0">
+            <el-segmented v-model="holdingEditMode" :options="holdingEditModeOptions" />
           </el-form-item>
-          <el-form-item label="持仓成本">
-            <strong>{{ formatMoney(editHoldingCost) }}</strong>
+          <template v-if="holdingEditMode === 'amount'">
+            <el-form-item label="持有金额" required>
+              <el-input-number v-model="tradeAmount" :controls="false" :min="0" :precision="2" :step="1000" />
+            </el-form-item>
+            <el-form-item label="持有收益">
+              <el-input-number v-model="tradeProfitAmount" :controls="false" :precision="2" :step="1000" />
+            </el-form-item>
+          </template>
+          <template v-else>
+            <el-form-item label="持有份额" required>
+              <el-input-number v-model="editHoldingShares" :controls="false" :min="0" :precision="4" :step="100" />
+            </el-form-item>
+            <el-form-item label="持仓成本价" required>
+              <el-input-number v-model="tradeCostNav" :controls="false" :min="0" :precision="4" :step="0.01" />
+            </el-form-item>
+          </template>
+          <el-form-item required>
+            <template #label>
+              <span>首次买入日期</span>
+              <el-button class="date-mode-button" link type="primary" @click="toggleFirstBuyDateMode">
+                {{ firstBuyDateMode === 'date' ? '按天数' : '按日期' }}
+              </el-button>
+            </template>
+            <el-date-picker
+              v-if="firstBuyDateMode === 'date'"
+              v-model="firstBuyDate"
+              type="date"
+              value-format="YYYY-MM-DD"
+              placeholder="选择日期"
+              style="width: 100%"
+            />
+            <el-input-number
+              v-else
+              v-model="holdingDays"
+              :controls="false"
+              :min="0"
+              :precision="0"
+              :step="1"
+              style="width: 100%"
+            />
           </el-form-item>
         </template>
+        <el-form-item v-else label="操作金额">
+          <el-input-number v-model="tradeAmount" :min="0" :precision="2" :step="1000" />
+        </el-form-item>
         <template v-if="activeTradeType === '转换'">
           <el-form-item label="目标基金">
             <el-select
@@ -538,6 +662,7 @@ import {
   deleteFundGroup,
   deleteWatchFund,
   estimateFund,
+  listMarketIndices,
   listFundGroups,
   listFundTransactions,
   listWatchFunds,
@@ -547,8 +672,10 @@ import {
   updateFundGroup,
   updateFundHolding,
   updateWatchFundGroups,
+  type FundGroupId,
   type FundEstimateRow,
   type FundGroup,
+  type MarketIndexRow,
   type FundSnapshot,
   type FundSearchItem,
   type FundTransaction
@@ -556,13 +683,29 @@ import {
 
 type PayMethod = 'alipay' | 'wechat'
 type RefreshMode = 'manual' | 'standard' | 'fast'
+type HoldingEditMode = 'amount' | 'shares'
+type FirstBuyDateMode = 'date' | 'days'
+type SortKey = 'default' | 'rate' | 'profit' | 'name'
+type SortOrder = 'asc' | 'desc'
 type TradeType = '加仓' | '减仓' | '定投' | '转换' | '编辑持仓' | '清空持仓' | ''
 type GroupTab = {
   key: string
-  id?: number
+  id?: FundGroupId
   name: string
   count: number
   type: 'all' | 'watch' | 'custom'
+}
+type GroupEditRow = {
+  clientId: string
+  id?: FundGroupId
+  name: string
+  originalName: string
+  count: number
+  editable: boolean
+  groupType?: string
+  isNew: boolean
+  deleted: boolean
+  editing: boolean
 }
 
 const repositoryUrl = 'https://github.com/yujianghuai03/yujianghuai'
@@ -584,6 +727,16 @@ const refreshModeOptions = [
   { label: '标准 15s', value: 'standard' },
   { label: '快速 5s', value: 'fast' }
 ]
+const holdingEditModeOptions = [
+  { label: '按金额', value: 'amount' },
+  { label: '按份额', value: 'shares' }
+]
+const sortOptions = [
+  { label: '默认', value: 'default' },
+  { label: '涨跌幅', value: 'rate' },
+  { label: '持有收益', value: 'profit' },
+  { label: '名称', value: 'name' }
+]
 const localSnapshotKey = 'YJH_LOCAL_FUND_SNAPSHOT'
 
 const router = useRouter()
@@ -591,6 +744,7 @@ const activeSection = ref('overview')
 const selectedCodes = ref<string[]>([])
 const searching = ref(false)
 const refreshing = ref(false)
+const indicesLoading = ref(false)
 const initialLoading = ref(true)
 const adding = ref(false)
 const unauthorized = ref(false)
@@ -610,21 +764,32 @@ const refreshMode = ref<RefreshMode>('standard')
 const payMethod = ref<PayMethod>('alipay')
 const searchOptions = ref<FundSearchItem[]>([])
 const watchlist = ref<FundEstimateRow[]>([])
+const marketIndices = ref<MarketIndexRow[]>([])
+const systemGroups = ref<FundGroup[]>([])
 const customGroups = ref<FundGroup[]>([])
+const groupEditRows = ref<GroupEditRow[]>([])
 const fundTransactions = ref<FundTransaction[]>([])
 const pendingAddFunds = ref<FundSearchItem[]>([])
 const activeGroupKey = ref('all')
+const sortKey = ref<SortKey>('default')
+const sortOrder = ref<SortOrder>('desc')
 const groupFormName = ref('')
 const savingGroup = ref(false)
 const editingGroup = ref<FundGroup | null>(null)
 const lastUpdated = ref('')
-const batchGroupIds = ref<number[]>([])
+const batchGroupIds = ref<FundGroupId[]>([])
 const userInfo = ref<UserInfo | null>(null)
 const selectedRow = ref<FundEstimateRow | null>(null)
 const holdingActionRow = ref<FundEstimateRow | null>(null)
 const activeTradeType = ref<TradeType>('')
+const holdingEditMode = ref<HoldingEditMode>('amount')
+const firstBuyDateMode = ref<FirstBuyDateMode>('date')
 const tradeAmount = ref(0)
 const tradeProfitAmount = ref(0)
+const tradeCostNav = ref(0)
+const editHoldingShares = ref(0)
+const firstBuyDate = ref('')
+const holdingDays = ref(0)
 const tradeRemark = ref('')
 const targetFundSelector = ref('')
 const targetSearchCode = ref('')
@@ -651,7 +816,8 @@ const refreshMs = computed(() => {
 const totalHolding = computed(() => watchlist.value.reduce((sum, item) => sum + Number(item.holdingAmount || 0), 0))
 const totalProfit = computed(() => watchlist.value.reduce((sum, item) => sum + Number(item.estimateProfit || 0), 0))
 const totalMarketValue = computed(() => watchlist.value.reduce((sum, item) => sum + Number(item.estimateMarketValue || item.holdingAmount || 0), 0))
-const portfolioChange = computed(() => totalHolding.value ? totalProfit.value / totalHolding.value * 100 : 0)
+const totalPrincipal = computed(() => watchlist.value.reduce((sum, item) => sum + Number(item.holdingCost || 0), 0))
+const portfolioChange = computed(() => totalPrincipal.value ? totalProfit.value / totalPrincipal.value * 100 : 0)
 const groupTabs = computed<GroupTab[]>(() => [
   { key: 'all', name: '全部', count: new Set(watchlist.value.map((item) => item.code)).size, type: 'all' },
   { key: 'watch', name: '自选', count: watchlist.value.length, type: 'watch' },
@@ -663,6 +829,21 @@ const groupTabs = computed<GroupTab[]>(() => [
     type: 'custom' as const
   }))
 ])
+const managedGroups = computed<FundGroup[]>(() => [
+  ...systemManageGroups.value,
+  ...customGroups.value.map((group) => ({ ...group, count: countFundsByGroup(group.id) }))
+])
+const visibleManagedGroups = computed<GroupEditRow[]>(() => groupEditRows.value.filter((group) => !group.deleted))
+const systemManageGroups = computed<FundGroup[]>(() => {
+  const allCount = new Set(watchlist.value.map((item) => item.code)).size
+  const watchCount = watchlist.value.length
+  const allGroup = systemGroups.value.find((group) => group.name === '全部')
+  const watchGroup = systemGroups.value.find((group) => group.name === '自选')
+  return [
+    { id: allGroup?.id ?? -1, name: '全部', count: allCount, groupType: 'SYSTEM', editable: false },
+    { id: watchGroup?.id ?? -2, name: '自选', count: watchCount, groupType: 'SYSTEM', editable: false }
+  ]
+})
 const activeGroup = computed(() => groupTabs.value.find((group) => group.key === activeGroupKey.value) || groupTabs.value[0])
 const filteredWatchlist = computed(() => {
   const group = activeGroup.value
@@ -670,6 +851,25 @@ const filteredWatchlist = computed(() => {
     return watchlist.value
   }
   return watchlist.value.filter((item) => (item.groupIds || []).includes(group.id || 0))
+})
+const sortedWatchlist = computed(() => {
+  const items = [...filteredWatchlist.value]
+  if (sortKey.value === 'default') {
+    return items
+  }
+  const direction = sortOrder.value === 'asc' ? 1 : -1
+  return items.sort((left, right) => {
+    if (sortKey.value === 'name') {
+      return left.name.localeCompare(right.name, 'zh-CN') * direction
+    }
+    const leftValue = sortKey.value === 'rate'
+      ? Number(left.estimateRate || 0)
+      : Number(left.estimateProfit || 0)
+    const rightValue = sortKey.value === 'rate'
+      ? Number(right.estimateRate || 0)
+      : Number(right.estimateProfit || 0)
+    return (leftValue - rightValue) * direction
+  })
 })
 const emptyDescription = computed(() => {
   if (watchlist.value.length === 0) {
@@ -693,8 +893,8 @@ const marketOpen = computed(() => {
 const metrics = computed(() => [
   { label: '今日预估盈亏', value: formatMoney(totalProfit.value), hint: '按持仓金额与实时涨跌估算', tone: toneClass(totalProfit.value) },
   { label: '预估总市值', value: formatMoney(totalMarketValue.value), hint: `${watchlist.value.length} 只自选基金`, tone: '' },
-  { label: '持有金额', value: formatMoney(totalHolding.value), hint: '用户录入的本金口径', tone: '' },
-  { label: '组合涨跌', value: formatPercent(portfolioChange.value), hint: '预估盈亏 / 持有金额', tone: toneClass(portfolioChange.value) },
+  { label: '持有金额', value: formatMoney(totalHolding.value), hint: '当前持仓市值口径', tone: '' },
+  { label: '组合涨跌', value: formatPercent(portfolioChange.value), hint: '预估盈亏 / 投入本金', tone: toneClass(portfolioChange.value) },
   { label: '数据新鲜度', value: staleSeconds.value === null ? '-' : `${staleSeconds.value}s`, hint: lastUpdated.value || '等待首次刷新', tone: staleSeconds.value !== null && staleSeconds.value > 60 ? 'down' : 'up' }
 ])
 const refreshStatusText = computed(() => {
@@ -726,11 +926,10 @@ const currentFundTransactions = computed(() => {
     .filter((record) => record.fundCode === holdingActionRow.value?.code)
     .sort((a, b) => Date.parse(b.tradeTime) - Date.parse(a.tradeTime))
 })
-const editHoldingCost = computed(() => Math.max(0, Number(tradeAmount.value || 0) - Number(tradeProfitAmount.value || 0)))
-
 onMounted(() => {
   document.addEventListener('visibilitychange', handleVisibilityChange)
   void loadUserProfile()
+  void loadMarketIndices()
   void loadGroups()
   void loadWatchlist(true)
 })
@@ -753,6 +952,87 @@ function getStoredValue(key: string) {
     return ''
   }
   return window.localStorage.getItem(key) ?? ''
+}
+
+function isCustomGroup(group: FundGroup) {
+  return group.editable !== false && group.groupType !== 'SYSTEM'
+}
+
+function isGroupEditable(group: FundGroup) {
+  return isCustomGroup(group)
+}
+
+function toGroupEditRow(group: FundGroup): GroupEditRow {
+  const editable = isGroupEditable(group)
+  return {
+    clientId: `${editable ? 'custom' : 'system'}-${group.id}`,
+    id: group.id,
+    name: group.name,
+    originalName: group.name,
+    count: group.count || 0,
+    editable,
+    groupType: group.groupType,
+    isNew: false,
+    deleted: false,
+    editing: false
+  }
+}
+
+function initGroupEditor() {
+  groupEditRows.value = managedGroups.value.map(toGroupEditRow)
+}
+
+function resetGroupEditor() {
+  groupEditRows.value = []
+}
+
+function addGroupEditRow() {
+  groupEditRows.value.push({
+    clientId: `new-${Date.now()}-${Math.random()}`,
+    name: '',
+    originalName: '',
+    count: 0,
+    editable: true,
+    groupType: 'CUSTOM',
+    isNew: true,
+    deleted: false,
+    editing: true
+  })
+}
+
+function renameGroupRow(group: GroupEditRow) {
+  group.editing = true
+}
+
+async function deleteGroupRow(group: GroupEditRow) {
+  if (group.isNew) {
+    groupEditRows.value = groupEditRows.value.filter((item) => item.clientId !== group.clientId)
+    return
+  }
+  if (!group.id) {
+    return
+  }
+  try {
+    if (hasToken()) {
+      await deleteFundGroup(group.id)
+      mirrorNextCloudSnapshot = true
+    } else {
+      deleteLocalGroup(group.id)
+    }
+    groupEditRows.value = groupEditRows.value.filter((item) => item.clientId !== group.clientId)
+    if (activeGroupKey.value === `custom-${group.id}`) {
+      activeGroupKey.value = 'all'
+    }
+    await loadGroups()
+    await loadWatchlist(true)
+    initGroupEditor()
+    ElMessage.success('分组已删除')
+  } catch (error) {
+    handleError(error, '删除分组失败')
+    await loadGroups()
+    await loadWatchlist(true)
+    initGroupEditor()
+  }
 }
 
 function clearAuthStorage() {
@@ -814,20 +1094,35 @@ async function loadUserProfile() {
 
 async function loadGroups() {
   if (!hasToken()) {
+    systemGroups.value = []
     customGroups.value = readLocalSnapshot().groups.map((group) => ({ ...group, count: 0 }))
     return
   }
   try {
-    customGroups.value = await listFundGroups()
+    const groups = await listFundGroups()
+    systemGroups.value = groups.filter((group) => !isCustomGroup(group))
+    customGroups.value = groups.filter(isCustomGroup)
     if (!groupTabs.value.some((group) => group.key === activeGroupKey.value)) {
       activeGroupKey.value = 'all'
     }
   } catch (error) {
     if (isUnauthorized(error)) {
+      systemGroups.value = []
       customGroups.value = []
       return
     }
     handleError(error, '加载基金分组失败')
+  }
+}
+
+async function loadMarketIndices() {
+  indicesLoading.value = true
+  try {
+    marketIndices.value = await listMarketIndices()
+  } catch {
+    marketIndices.value = []
+  } finally {
+    indicesLoading.value = false
   }
 }
 
@@ -885,7 +1180,7 @@ async function confirmBatchAddFunds() {
   }
   adding.value = true
   try {
-    const groupIds = batchGroupIds.value.filter((id) => id > 0)
+    const groupIds = batchGroupIds.value.filter((id) => id !== -1 && id !== -2)
     if (hasToken()) {
       for (const option of pendingAddFunds.value) {
         await addWatchFund(option.code, option.name, 0)
@@ -900,6 +1195,9 @@ async function confirmBatchAddFunds() {
           name: option.name,
           holdingAmount: 0,
           holdingCost: 0,
+          holdingCostNav: 0,
+          holdingShares: 0,
+          firstBuyDate: '',
           groupIds: [...groupIds]
         })
       })
@@ -925,6 +1223,9 @@ async function loadWatchlist(manual: boolean) {
   controller?.abort()
   controller = new AbortController()
   refreshing.value = true
+  if (manual) {
+    void loadMarketIndices()
+  }
   authenticated.value = hasToken()
   loadError.value = ''
   if (!authenticated.value) {
@@ -1035,6 +1336,75 @@ async function saveGroup() {
   }
 }
 
+async function saveGroupEdits() {
+  const rows = groupEditRows.value.filter((group) => group.editable)
+  const activeRows = rows.filter((group) => !group.deleted)
+  activeRows.forEach((group) => {
+    group.name = group.name.trim()
+  })
+  const names = activeRows.map((group) => group.name)
+  const emptyRow = activeRows.find((group) => !group.name)
+  if (emptyRow) {
+    emptyRow.editing = true
+    ElMessage.warning('请输入分组名称')
+    return
+  }
+  if (names.some((name) => name === '全部' || name === '自选')) {
+    ElMessage.warning('系统分组不能修改')
+    return
+  }
+  if (new Set(names).size !== names.length) {
+    ElMessage.warning('基金分组名称已存在')
+    return
+  }
+
+  savingGroup.value = true
+  try {
+    const updatedRows = activeRows.filter((group) => !group.isNew && group.id && group.name.trim() !== group.originalName)
+    const createdRows = activeRows.filter((group) => group.isNew)
+
+    for (const group of updatedRows) {
+      const name = group.name.trim()
+      if (!group.id) {
+        continue
+      }
+      if (hasToken()) {
+        await updateFundGroup(group.id, name)
+        mirrorNextCloudSnapshot = true
+      } else {
+        updateLocalGroup(group.id, name)
+      }
+    }
+
+    let lastCreatedGroup: FundGroup | null = null
+    for (const group of createdRows) {
+      const name = group.name.trim()
+      lastCreatedGroup = hasToken()
+        ? await createFundGroup(name)
+        : createLocalGroup(name)
+      if (hasToken()) {
+        mirrorNextCloudSnapshot = true
+      }
+    }
+
+    if (lastCreatedGroup) {
+      activeGroupKey.value = `custom-${lastCreatedGroup.id}`
+    }
+    groupEditRows.value = []
+    await loadGroups()
+    await loadWatchlist(true)
+    if (hasToken()) {
+      persistCurrentSnapshot()
+    }
+    ElMessage.success('分组已保存')
+    groupManageVisible.value = false
+  } catch (error) {
+    handleError(error, '保存分组失败')
+  } finally {
+    savingGroup.value = false
+  }
+}
+
 async function removeGroup(group: FundGroup) {
   try {
     await ElMessageBox.confirm(`确定删除分组“${group.name}”吗？该操作不会删除基金。`, '删除分组', {
@@ -1066,7 +1436,7 @@ async function saveHolding(row: FundEstimateRow) {
   try {
     const beforeAmount = Number(row.holdingAmount || 0)
     if (hasToken()) {
-      await updateFundHolding(row.code, row.holdingAmount || 0, row.holdingCost || 0)
+      await updateFundHolding(row.code, row.holdingAmount || 0, row.holdingCost || 0, row.holdingCostNav || 0, row.holdingShares || 0, row.firstBuyDate || '')
       mirrorNextCloudSnapshot = true
     } else {
       persistCurrentSnapshot()
@@ -1096,7 +1466,17 @@ function openHoldingAction(row: FundEstimateRow) {
 function openTradeForm(type: TradeType) {
   activeTradeType.value = type
   tradeAmount.value = type === '编辑持仓' ? Number(holdingActionRow.value?.holdingAmount || 0) : 0
-  tradeProfitAmount.value = type === '编辑持仓' ? Math.max(0, Number(holdingActionRow.value?.holdingAmount || 0) - Number(holdingActionRow.value?.holdingCost || 0)) : 0
+  tradeProfitAmount.value = type === '编辑持仓' ? Number(holdingActionRow.value?.estimateProfit || 0) : 0
+  const principal = Number(holdingActionRow.value?.holdingAmount || 0)
+  const shares = Number(holdingActionRow.value?.holdingShares || 0)
+  holdingEditMode.value = 'amount'
+  firstBuyDateMode.value = 'date'
+  tradeCostNav.value = type === '编辑持仓'
+    ? Number(holdingActionRow.value?.holdingCostNav || (principal > 0 && shares > 0 ? principal / shares : 0))
+    : 0
+  editHoldingShares.value = type === '编辑持仓' ? Number(holdingActionRow.value?.holdingShares || 0) : 0
+  firstBuyDate.value = type === '编辑持仓' ? String(holdingActionRow.value?.firstBuyDate || '') : ''
+  holdingDays.value = firstBuyDate.value ? daysFromDate(firstBuyDate.value) : 0
   tradeRemark.value = ''
   targetFundSelector.value = ''
   targetSearchCode.value = ''
@@ -1104,6 +1484,65 @@ function openTradeForm(type: TradeType) {
   manualTargetCode.value = ''
   manualTargetName.value = ''
   tradeFormVisible.value = true
+}
+
+function latestNavOf(row: FundEstimateRow | null) {
+  return Number(row?.estimateNav || row?.previousNav || 0)
+}
+
+async function ensureRealtimeEstimate(row: FundEstimateRow) {
+  if (latestNavOf(row) > 0) {
+    return
+  }
+  const estimate = await estimateFund(row.code)
+  row.name = estimate.name || row.name
+  row.navDate = estimate.navDate
+  row.previousNav = estimate.previousNav
+  row.estimateNav = estimate.estimateNav
+  row.estimateRate = estimate.estimateRate
+  row.estimateTime = estimate.estimateTime
+  row.error = estimate.error
+}
+
+function daysFromDate(value: string) {
+  const parsed = Date.parse(`${value}T00:00:00`)
+  if (Number.isNaN(parsed)) {
+    return 0
+  }
+  return Math.max(0, Math.floor((Date.now() - parsed) / 86400000))
+}
+
+function dateFromDays(days: number) {
+  const date = new Date()
+  date.setDate(date.getDate() - Math.max(0, Number(days || 0)))
+  return formatDateInput(date)
+}
+
+function formatDateInput(date: Date) {
+  const year = date.getFullYear()
+  const month = `${date.getMonth() + 1}`.padStart(2, '0')
+  const day = `${date.getDate()}`.padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function toggleFirstBuyDateMode() {
+  if (firstBuyDateMode.value === 'date') {
+    holdingDays.value = firstBuyDate.value ? daysFromDate(firstBuyDate.value) : 0
+    firstBuyDateMode.value = 'days'
+  } else {
+    firstBuyDate.value = dateFromDays(holdingDays.value)
+    firstBuyDateMode.value = 'date'
+  }
+}
+
+function toggleSortOrder() {
+  sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
+}
+
+function resolveFirstBuyDate() {
+  return firstBuyDateMode.value === 'date'
+    ? firstBuyDate.value
+    : dateFromDays(holdingDays.value)
 }
 
 function remoteTargetSearch(keyword: string) {
@@ -1176,11 +1615,52 @@ async function applyHoldingTrade(row: FundEstimateRow, type: TradeType, amount: 
   } else if (type === '编辑持仓') {
     afterAmount = amount
   }
-  row.holdingAmount = afterAmount
   if (type === '编辑持仓') {
-    row.holdingCost = editHoldingCost.value
+    const buyDate = resolveFirstBuyDate()
+    if (!buyDate) {
+      throw new Error('请选择首次买入日期')
+    }
+    await ensureRealtimeEstimate(row)
+    const latestNav = latestNavOf(row)
+    if (holdingEditMode.value === 'amount') {
+      const marketValue = Number(tradeAmount.value || 0)
+      const profit = Number(tradeProfitAmount.value || 0)
+      const principal = marketValue - profit
+      if (marketValue <= 0) {
+        throw new Error('请输入有效的持有金额')
+      }
+      if (principal <= 0) {
+        throw new Error('持有收益不能大于或等于持有金额')
+      }
+      if (latestNav <= 0) {
+        throw new Error('当前基金净值缺失，无法按金额计算份额')
+      }
+      row.holdingAmount = marketValue
+      row.holdingShares = marketValue / latestNav
+      row.holdingCostNav = principal / row.holdingShares
+      row.holdingCost = principal
+      row.firstBuyDate = buyDate
+    } else {
+      const shares = Number(editHoldingShares.value || 0)
+      const costNav = Number(tradeCostNav.value || 0)
+      if (shares <= 0 || costNav <= 0) {
+        throw new Error('请输入有效的持有份额和持仓成本价')
+      }
+      row.holdingShares = shares
+      row.holdingCostNav = costNav
+      row.holdingCost = shares * costNav
+      row.holdingAmount = latestNav > 0 ? shares * latestNav : row.holdingCost
+      row.firstBuyDate = buyDate
+    }
+    afterAmount = row.holdingAmount
+  } else {
+    row.holdingAmount = afterAmount
   }
   recalculateEstimate(row)
+  if (hasToken()) {
+    await updateFundHolding(row.code, row.holdingAmount || 0, row.holdingCost || 0, row.holdingCostNav || 0, row.holdingShares || 0, row.firstBuyDate || '')
+    mirrorNextCloudSnapshot = true
+  }
   addTransactionRecord({
     fundCode: row.code,
     fundName: row.name,
@@ -1216,6 +1696,9 @@ async function applyTransfer(row: FundEstimateRow, amount: number) {
       name: targetName,
       holdingAmount: 0,
       holdingCost: 0,
+      holdingCostNav: 0,
+      holdingShares: 0,
+      firstBuyDate: '',
       groupIds: []
     }
     watchlist.value.unshift(target)
@@ -1262,6 +1745,10 @@ async function clearHolding() {
     })
     const beforeAmount = Number(row.holdingAmount || 0)
     row.holdingAmount = 0
+    row.holdingCost = 0
+    row.holdingCostNav = 0
+    row.holdingShares = 0
+    row.firstBuyDate = ''
     addTransactionRecord({
       fundCode: row.code,
       fundName: row.name,
@@ -1287,16 +1774,29 @@ function addTransactionRecord(record: FundTransaction) {
 }
 
 function recalculateEstimate(row: FundEstimateRow) {
-  const holdingAmount = Number(row.holdingAmount || 0)
-  const rate = Number(row.estimateRate || 0)
-  row.estimateProfit = holdingAmount * rate / 100
-  row.estimateMarketValue = holdingAmount + row.estimateProfit
+  const currentMarketValue = Number(row.holdingAmount || 0)
+  const principal = Number(row.holdingCost || 0) || currentMarketValue
+  const nav = latestNavOf(row)
+  let shares = Number(row.holdingShares || 0)
+  if (shares <= 0 && Number(row.holdingCostNav || 0) > 0) {
+    shares = principal / Number(row.holdingCostNav || 0)
+    row.holdingShares = shares
+  }
+  if (shares > 0 && nav > 0) {
+    row.estimateMarketValue = shares * nav
+    row.estimateProfit = row.estimateMarketValue - principal
+    row.holdingAmount = row.estimateMarketValue
+  } else {
+    row.estimateMarketValue = currentMarketValue
+    row.estimateProfit = currentMarketValue - principal
+  }
 }
 
 async function syncSnapshotAfterLocalChange() {
   persistCurrentSnapshot()
   if (hasToken()) {
     await replaceCloudSnapshot(readLocalSnapshot())
+    clearLocalSnapshot()
     mirrorNextCloudSnapshot = true
   }
 }
@@ -1330,15 +1830,27 @@ async function fetchCloudSnapshot(signal?: AbortSignal): Promise<FundSnapshot> {
     listFundGroups(),
     listFundTransactions()
   ])
+  const customOnlyGroups = groups.filter(isCustomGroup)
   return {
     funds: funds.map((fund) => ({
       code: fund.code,
       name: fund.name,
       holdingAmount: Number(fund.holdingAmount || 0),
       holdingCost: Number(fund.holdingCost || 0),
+      holdingCostNav: Number(fund.holdingCostNav || 0),
+      holdingShares: Number(fund.holdingShares || 0),
+      firstBuyDate: fund.firstBuyDate || '',
+      navDate: fund.navDate,
+      previousNav: fund.previousNav,
+      estimateNav: fund.estimateNav,
+      estimateRate: fund.estimateRate,
+      estimateProfit: fund.estimateProfit,
+      estimateMarketValue: fund.estimateMarketValue,
+      estimateTime: fund.estimateTime,
+      error: fund.error,
       groupIds: fund.groupIds || []
     })),
-    groups: groups.map((group) => ({
+    groups: customOnlyGroups.map((group) => ({
       id: group.id,
       name: group.name
     })),
@@ -1352,15 +1864,15 @@ async function reconcileLocalAndCloud(cloudSnapshot: FundSnapshot): Promise<Fund
   const cloudHasData = snapshotHasData(cloudSnapshot)
   if (mirrorNextCloudSnapshot) {
     mirrorNextCloudSnapshot = false
-    saveLocalSnapshot(cloudSnapshot)
+    clearLocalSnapshot()
     return cloudSnapshot
   }
   if (syncingLocalAndCloud || snapshotsEqual(localSnapshot, cloudSnapshot)) {
-    saveLocalSnapshot(cloudSnapshot)
+    clearLocalSnapshot()
     return cloudSnapshot
   }
   if (!localHasData) {
-    saveLocalSnapshot(cloudSnapshot)
+    clearLocalSnapshot()
     return cloudSnapshot
   }
   if (!cloudHasData) {
@@ -1369,7 +1881,7 @@ async function reconcileLocalAndCloud(cloudSnapshot: FundSnapshot): Promise<Fund
       await replaceCloudSnapshot(localSnapshot)
       ElMessage.success('本地数据已同步到云端')
       const refreshed = await fetchCloudSnapshot()
-      saveLocalSnapshot(refreshed)
+      clearLocalSnapshot()
       return refreshed
     } finally {
       syncingLocalAndCloud = false
@@ -1378,7 +1890,7 @@ async function reconcileLocalAndCloud(cloudSnapshot: FundSnapshot): Promise<Fund
 
   const useLocal = await askLocalOrCloud()
   if (!useLocal) {
-    saveLocalSnapshot(cloudSnapshot)
+    clearLocalSnapshot()
     ElMessage.success('已使用云端数据覆盖本地')
     return cloudSnapshot
   }
@@ -1393,7 +1905,7 @@ async function reconcileLocalAndCloud(cloudSnapshot: FundSnapshot): Promise<Fund
       ElMessage.success('本地数据已替换云端')
     }
     const refreshed = await fetchCloudSnapshot()
-    saveLocalSnapshot(refreshed)
+    clearLocalSnapshot()
     return refreshed
   } finally {
     syncingLocalAndCloud = false
@@ -1443,6 +1955,9 @@ function applySnapshotToPage(snapshot: FundSnapshot) {
     name: fund.name,
     holdingAmount: Number(fund.holdingAmount || 0),
     holdingCost: Number(fund.holdingCost || 0),
+    holdingCostNav: Number(fund.holdingCostNav || 0),
+    holdingShares: Number(fund.holdingShares || 0),
+    firstBuyDate: fund.firstBuyDate || '',
     navDate: fund.navDate,
     previousNav: fund.previousNav,
     estimateNav: fund.estimateNav,
@@ -1462,6 +1977,12 @@ async function hydrateLocalSnapshot(snapshot: FundSnapshot): Promise<FundSnapsho
   const funds = await Promise.all(snapshot.funds.map(async (fund) => {
     try {
       const estimate = await estimateFund(fund.code)
+      const nav = Number(estimate.estimateNav || estimate.previousNav || 0)
+      let shares = Number(fund.holdingShares || 0)
+      if (shares <= 0 && Number(fund.holdingCostNav || 0) > 0) {
+        shares = Number(fund.holdingAmount || 0) / Number(fund.holdingCostNav || 0)
+      }
+      const marketValue = shares > 0 && nav > 0 ? shares * nav : Number(fund.holdingAmount || 0)
       return {
         ...fund,
         name: estimate.name || fund.name,
@@ -1469,8 +1990,10 @@ async function hydrateLocalSnapshot(snapshot: FundSnapshot): Promise<FundSnapsho
         previousNav: estimate.previousNav,
         estimateNav: estimate.estimateNav,
         estimateRate: estimate.estimateRate,
-        estimateProfit: Number(fund.holdingAmount || 0) * Number(estimate.estimateRate || 0) / 100,
-        estimateMarketValue: Number(fund.holdingAmount || 0) * (1 + Number(estimate.estimateRate || 0) / 100),
+        holdingShares: shares,
+        firstBuyDate: fund.firstBuyDate || '',
+        estimateProfit: marketValue - Number(fund.holdingAmount || 0),
+        estimateMarketValue: marketValue,
         estimateTime: estimate.estimateTime,
         error: estimate.error
       }
@@ -1497,12 +2020,22 @@ function saveLocalSnapshot(snapshot: FundSnapshot) {
   localStorage.setItem(localSnapshotKey, JSON.stringify(normalizeSnapshot(snapshot)))
 }
 
+function clearLocalSnapshot() {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem(localSnapshotKey)
+  }
+}
+
 function persistCurrentSnapshot() {
   saveLocalSnapshot({
     funds: watchlist.value.map((fund) => ({
       code: fund.code,
       name: fund.name,
       holdingAmount: Number(fund.holdingAmount || 0),
+      holdingCost: Number(fund.holdingCost || 0),
+      holdingCostNav: Number(fund.holdingCostNav || 0),
+      holdingShares: Number(fund.holdingShares || 0),
+      firstBuyDate: fund.firstBuyDate || '',
       groupIds: fund.groupIds || []
     })),
     groups: customGroups.value.map((group) => ({
@@ -1521,6 +2054,9 @@ function upsertLocalFund(fund: FundEstimateRow) {
       name: fund.name,
       holdingAmount: fund.holdingAmount,
       holdingCost: fund.holdingCost,
+      holdingCostNav: fund.holdingCostNav,
+      holdingShares: fund.holdingShares,
+      firstBuyDate: fund.firstBuyDate,
       groupIds: fund.groupIds || watchlist.value[index].groupIds || []
     }
   } else {
@@ -1542,7 +2078,7 @@ function createLocalGroup(name: string): FundGroup {
   return group
 }
 
-function updateLocalGroup(id: number, name: string) {
+function updateLocalGroup(id: FundGroupId, name: string) {
   ensureLocalGroupNameAvailable(name, id)
   const group = customGroups.value.find((item) => item.id === id)
   if (group) {
@@ -1551,7 +2087,7 @@ function updateLocalGroup(id: number, name: string) {
   persistCurrentSnapshot()
 }
 
-function deleteLocalGroup(id: number) {
+function deleteLocalGroup(id: FundGroupId) {
   customGroups.value = customGroups.value.filter((group) => group.id !== id)
   watchlist.value.forEach((fund) => {
     fund.groupIds = (fund.groupIds || []).filter((groupId) => groupId !== id)
@@ -1559,7 +2095,7 @@ function deleteLocalGroup(id: number) {
   persistCurrentSnapshot()
 }
 
-function ensureLocalGroupNameAvailable(name: string, excludeId?: number) {
+function ensureLocalGroupNameAvailable(name: string, excludeId?: FundGroupId) {
   if (name === '全部' || name === '自选') {
     throw new Error('系统分组不能修改')
   }
@@ -1571,11 +2107,11 @@ function ensureLocalGroupNameAvailable(name: string, excludeId?: number) {
 function normalizeSnapshot(snapshot: FundSnapshot): FundSnapshot {
   const groups = Array.isArray(snapshot?.groups) ? snapshot.groups : []
   const funds = Array.isArray(snapshot?.funds) ? snapshot.funds : []
-  const groupIds = new Set(groups.map((group) => Number(group.id)).filter((id) => Number.isFinite(id)))
+  const groupIds = new Set(groups.map((group) => String(group.id)).filter(Boolean))
   return {
     groups: groups
       .filter((group) => group?.name)
-      .map((group) => ({ id: Number(group.id), name: String(group.name) })),
+      .map((group) => ({ id: String(group.id), name: String(group.name) })),
     funds: funds
       .filter((fund) => fund?.code)
       .map((fund) => ({
@@ -1583,7 +2119,10 @@ function normalizeSnapshot(snapshot: FundSnapshot): FundSnapshot {
         name: String(fund.name || fund.code),
         holdingAmount: Number(fund.holdingAmount || 0),
         holdingCost: Number(fund.holdingCost || 0),
-        groupIds: (fund.groupIds || []).map(Number).filter((id) => groupIds.has(id))
+        holdingCostNav: Number(fund.holdingCostNav || 0),
+        holdingShares: Number(fund.holdingShares || 0),
+        firstBuyDate: String(fund.firstBuyDate || ''),
+        groupIds: (fund.groupIds || []).map((id) => String(id)).filter((id) => groupIds.has(id))
       })),
     transactions: Array.isArray(snapshot?.transactions)
       ? snapshot.transactions
@@ -1625,12 +2164,15 @@ function snapshotComparable(snapshot: FundSnapshot) {
         name: fund.name,
         holdingAmount: Number(fund.holdingAmount || 0),
         holdingCost: Number(fund.holdingCost || 0),
-        groupIds: [...(fund.groupIds || [])].sort((a, b) => a - b)
+        holdingCostNav: Number(fund.holdingCostNav || 0),
+        holdingShares: Number(fund.holdingShares || 0),
+        firstBuyDate: fund.firstBuyDate || '',
+        groupIds: [...(fund.groupIds || [])].map((id) => String(id)).sort((a, b) => a.localeCompare(b))
       }))
       .sort((a, b) => a.code.localeCompare(b.code)),
     groups: [...snapshot.groups]
-      .map((group) => ({ id: group.id, name: group.name }))
-      .sort((a, b) => a.id - b.id),
+      .map((group) => ({ id: String(group.id), name: group.name }))
+      .sort((a, b) => a.id.localeCompare(b.id)),
     transactions: [...(snapshot.transactions || [])]
       .map((record) => ({
         fundCode: record.fundCode,
@@ -1700,16 +2242,28 @@ function toneClass(value: number) {
   return ''
 }
 
-function countFundsByGroup(groupId: number) {
-  return watchlist.value.filter((item) => (item.groupIds || []).includes(groupId)).length
+function countFundsByGroup(groupId: FundGroupId) {
+  return watchlist.value.filter((item) => (item.groupIds || []).map((id) => String(id)).includes(String(groupId))).length
 }
 
 function formatPercent(value: number) {
   return `${value >= 0 ? '+' : ''}${Number(value || 0).toFixed(2)}%`
 }
 
+function formatSignedNumber(value: number) {
+  return `${value >= 0 ? '+' : ''}${Number(value || 0).toFixed(2)}`
+}
+
+function formatIndexPoint(value?: number) {
+  return value === undefined || value === null ? '-' : Number(value || 0).toFixed(2)
+}
+
 function formatNumber(value?: number) {
   return value === undefined || value === null ? '-' : Number(value).toFixed(4)
+}
+
+function formatShares(value?: number) {
+  return value === undefined || value === null ? '-' : Number(value || 0).toFixed(4)
 }
 
 function formatMoney(value: number) {
@@ -1747,3 +2301,65 @@ function handleError(error: unknown, fallback: string) {
   ElMessage.error(message)
 }
 </script>
+
+<style scoped>
+.group-manage-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.group-manage-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 36px;
+}
+
+.group-manage-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.group-manage-row.is-system-group {
+  color: var(--el-text-color-placeholder);
+}
+
+.group-manage-row.is-pending-delete {
+  display: none;
+}
+
+.disabled-group-action {
+  display: inline-flex;
+}
+
+.group-manage-footer {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.date-mode-button {
+  margin-left: 8px;
+  padding: 0;
+}
+
+.add-group-row {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 36px;
+  border: 1px dashed var(--el-border-color);
+  border-radius: 6px;
+  color: var(--el-color-primary);
+  background: transparent;
+  cursor: pointer;
+}
+
+.add-group-row:hover {
+  border-color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+}
+</style>

@@ -29,6 +29,9 @@ public class UserFundGroup extends BaseEntity {
     @Schema(description = "分组名称")
     private String groupName;
 
+    @Schema(description = "分组类型，SYSTEM系统分组，CUSTOM自定义分组")
+    private String groupType;
+
     @Schema(description = "排序")
     private Integer sortOrder;
 }

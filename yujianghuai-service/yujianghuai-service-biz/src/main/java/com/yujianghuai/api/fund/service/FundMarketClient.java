@@ -1,9 +1,10 @@
-package com.yujianghuai.biz.fund.service;
+package com.yujianghuai.api.fund.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yujianghuai.biz.fund.model.FundEstimateVO;
 import com.yujianghuai.biz.fund.model.FundSearchVO;
+import com.yujianghuai.biz.fund.model.MarketIndexVO;
 import com.yujianghuai.common.exception.BizException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -84,6 +85,27 @@ public class FundMarketClient {
             vo.setCode(code);
             vo.setError("实时估值暂不可用");
             return vo;
+        }
+    }
+
+    public List<MarketIndexVO> indices() {
+        String url = "https://push2.eastmoney.com/api/qt/ulist.np/get?fltt=2&fields=f12,f14,f2,f3,f4&secids=1.000001,0.399001,0.399006,0.000300,0.000905";
+        try {
+            String body = get(url);
+            JsonNode diff = objectMapper.readTree(body).path("data").path("diff");
+            List<MarketIndexVO> indices = new ArrayList<>();
+            for (JsonNode item : diff) {
+                MarketIndexVO vo = new MarketIndexVO();
+                vo.setCode(item.path("f12").asText(""));
+                vo.setName(item.path("f14").asText(""));
+                vo.setPrice(decimalOrZero(item.path("f2").asText("0")));
+                vo.setChange(decimalOrZero(item.path("f4").asText("0")));
+                vo.setChangeRate(decimalOrZero(item.path("f3").asText("0")));
+                indices.add(vo);
+            }
+            return indices;
+        } catch (Exception exception) {
+            return List.of();
         }
     }
 
