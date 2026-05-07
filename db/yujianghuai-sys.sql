@@ -355,15 +355,82 @@ VALUES
     (1201, 1, 1200, 'BUTTON', 'ADMIN', '角色授权', 'system:role:grant', NULL, NULL, NULL, NULL, NULL, 1, 0, 1),
     (1300, 1, 1000, 'MENU', 'ADMIN', '菜单管理', 'system:menu:view', '/system/menu', 'system/menu/index', 'tree-table', NULL, NULL, 3, 1, 1),
     (1400, 1, 1000, 'MENU', 'ADMIN', '租户管理', 'system:tenant:view', '/system/tenant', 'system/tenant/index', 'tenant', NULL, NULL, 4, 1, 1),
-    (2000, 1, 0, 'CATALOG', 'ADMIN', '业务管理', 'business', '/business', 'Layout', 'database', NULL, NULL, 2, 1, 1),
-    (2100, 1, 2000, 'MENU', 'ADMIN', '演示业务', 'business:demo:view', '/business/demo', 'business/demo/index', 'example', NULL, NULL, 1, 1, 1),
-    (2101, 1, 2100, 'API', 'ADMIN', '演示Ping接口', 'business:demo:ping', NULL, NULL, NULL, 'GET', '/api/demo/ping', 1, 0, 1),
     (3000, 1, 0, 'CATALOG', 'ADMIN', '认证中心', 'auth', '/auth', 'Layout', 'lock', NULL, NULL, 3, 1, 1),
     (3100, 1, 3000, 'API', 'ADMIN', 'OAuth2签发令牌', 'auth:token:issue', NULL, NULL, NULL, 'POST', '/oauth2/token', 1, 0, 1),
     (3101, 1, 3000, 'API', 'ADMIN', 'Token校验', 'auth:token:check', NULL, NULL, NULL, 'GET', '/token/check_token', 2, 0, 1),
     (3102, 1, 3000, 'API', 'ADMIN', 'Token注销', 'auth:token:logout', NULL, NULL, NULL, 'DELETE', '/token/logout', 3, 0, 1),
     (4000, 1, 0, 'CATALOG', 'PORTAL', '前台页面', 'portal', '/', 'Layout', 'House', NULL, NULL, 1, 1, 1)
 ON DUPLICATE KEY UPDATE `menu_name` = VALUES(`menu_name`), `parent_id` = VALUES(`parent_id`), `status` = VALUES(`status`);
+
+INSERT INTO `sys_menu` (`id`, `tenant_id`, `parent_id`, `menu_type`, `menu_scope`, `menu_name`, `permission`, `path`, `component`, `icon`, `method`, `api_path`, `sort_order`, `visible`, `status`)
+VALUES
+    (2200, 1, 4000, 'CATALOG', 'PORTAL', '基金管理', 'fund', '/fund', 'Layout', 'fund', NULL, NULL, 2, 1, 1),
+    (2210, 1, 2200, 'MENU', 'PORTAL', '基金信息管理', 'fund:info:view', '/fund/info', 'fund/info/index', 'list', NULL, NULL, 1, 1, 1),
+    (2211, 1, 2210, 'BUTTON', 'PORTAL', '基金信息新增', 'fund:info:add', NULL, NULL, NULL, NULL, NULL, 1, 0, 1),
+    (2212, 1, 2210, 'BUTTON', 'PORTAL', '基金信息修改', 'fund:info:edit', NULL, NULL, NULL, NULL, NULL, 2, 0, 1),
+    (2213, 1, 2210, 'BUTTON', 'PORTAL', '基金信息删除', 'fund:info:delete', NULL, NULL, NULL, NULL, NULL, 3, 0, 1),
+    (2214, 1, 2210, 'BUTTON', 'PORTAL', '基金状态管理', 'fund:info:status', NULL, NULL, NULL, NULL, NULL, 4, 0, 1),
+    (2215, 1, 2210, 'BUTTON', 'PORTAL', '基金标签绑定', 'fund:info:tag', NULL, NULL, NULL, NULL, NULL, 5, 0, 1),
+    (2220, 1, 2200, 'MENU', 'PORTAL', '基金标签管理', 'fund:tag:view', '/fund/tag', 'fund/tag/index', 'tag', NULL, NULL, 2, 1, 1),
+    (2221, 1, 2220, 'BUTTON', 'PORTAL', '基金标签新增', 'fund:tag:add', NULL, NULL, NULL, NULL, NULL, 1, 0, 1),
+    (2222, 1, 2220, 'BUTTON', 'PORTAL', '基金标签修改', 'fund:tag:edit', NULL, NULL, NULL, NULL, NULL, 2, 0, 1),
+    (2223, 1, 2220, 'BUTTON', 'PORTAL', '基金标签删除', 'fund:tag:delete', NULL, NULL, NULL, NULL, NULL, 3, 0, 1),
+    (2230, 1, 2210, 'API', 'PORTAL', '分页查询基金信息', 'fund:info:page', NULL, NULL, NULL, 'GET', '/fund/info/page', 10, 0, 1),
+    (2231, 1, 2210, 'API', 'PORTAL', '查询基金详情', 'fund:info:detail', NULL, NULL, NULL, 'GET', '/fund/info/{id}', 11, 0, 1),
+    (2232, 1, 2210, 'API', 'PORTAL', '新增基金信息', 'fund:info:create', NULL, NULL, NULL, 'POST', '/fund/info', 12, 0, 1),
+    (2233, 1, 2210, 'API', 'PORTAL', '修改基金信息', 'fund:info:update', NULL, NULL, NULL, 'PUT', '/fund/info/{id}', 13, 0, 1),
+    (2234, 1, 2210, 'API', 'PORTAL', '修改基金状态', 'fund:info:updateStatus', NULL, NULL, NULL, 'PUT', '/fund/info/{id}/status', 14, 0, 1),
+    (2235, 1, 2210, 'API', 'PORTAL', '绑定基金标签', 'fund:info:bindTags', NULL, NULL, NULL, 'PUT', '/fund/info/{id}/tags', 15, 0, 1),
+    (2236, 1, 2210, 'API', 'PORTAL', '删除基金信息', 'fund:info:remove', NULL, NULL, NULL, 'DELETE', '/fund/info/{id}', 16, 0, 1),
+    (2240, 1, 2220, 'API', 'PORTAL', '查询基金标签', 'fund:tag:list', NULL, NULL, NULL, 'GET', '/fund/tag/list', 10, 0, 1),
+    (2241, 1, 2220, 'API', 'PORTAL', '新增基金标签', 'fund:tag:create', NULL, NULL, NULL, 'POST', '/fund/tag', 11, 0, 1),
+    (2242, 1, 2220, 'API', 'PORTAL', '修改基金标签', 'fund:tag:update', NULL, NULL, NULL, 'PUT', '/fund/tag/{id}', 12, 0, 1),
+    (2243, 1, 2220, 'API', 'PORTAL', '删除基金标签', 'fund:tag:remove', NULL, NULL, NULL, 'DELETE', '/fund/tag/{id}', 13, 0, 1)
+ON DUPLICATE KEY UPDATE
+    `menu_name` = VALUES(`menu_name`),
+    `parent_id` = VALUES(`parent_id`),
+    `menu_type` = VALUES(`menu_type`),
+    `path` = VALUES(`path`),
+    `component` = VALUES(`component`),
+    `icon` = VALUES(`icon`),
+    `method` = VALUES(`method`),
+    `api_path` = VALUES(`api_path`),
+    `sort_order` = VALUES(`sort_order`),
+    `visible` = VALUES(`visible`),
+    `status` = VALUES(`status`);
+
+INSERT INTO `sys_menu` (`id`, `tenant_id`, `parent_id`, `menu_type`, `menu_scope`, `menu_name`, `permission`, `path`, `component`, `icon`, `method`, `api_path`, `sort_order`, `visible`, `status`)
+VALUES
+    (2250, 1, 2200, 'MENU', 'PORTAL', '用户持仓管理', 'fund:holding:view', '/fund/holding', 'fund/holding/index', 'wallet', NULL, NULL, 3, 1, 1),
+    (2251, 1, 2250, 'BUTTON', 'PORTAL', '持仓新增', 'fund:holding:add', NULL, NULL, NULL, NULL, NULL, 1, 0, 1),
+    (2252, 1, 2250, 'BUTTON', 'PORTAL', '持仓修改', 'fund:holding:edit', NULL, NULL, NULL, NULL, NULL, 2, 0, 1),
+    (2253, 1, 2250, 'BUTTON', 'PORTAL', '持仓删除', 'fund:holding:delete', NULL, NULL, NULL, NULL, NULL, 3, 0, 1),
+    (2254, 1, 2250, 'BUTTON', 'PORTAL', '持仓汇总', 'fund:holding:summary:view', NULL, NULL, NULL, NULL, NULL, 4, 0, 1),
+    (2260, 1, 2250, 'API', 'PORTAL', '分页查询持仓', 'fund:holding:page', NULL, NULL, NULL, 'GET', '/fund/holding/page', 10, 0, 1),
+    (2261, 1, 2250, 'API', 'PORTAL', '查询持仓列表', 'fund:holding:list', NULL, NULL, NULL, 'GET', '/fund/holding/list', 11, 0, 1),
+    (2262, 1, 2250, 'API', 'PORTAL', '查询持仓详情', 'fund:holding:detail', NULL, NULL, NULL, 'GET', '/fund/holding/{id}', 12, 0, 1),
+    (2263, 1, 2250, 'API', 'PORTAL', '新增持仓', 'fund:holding:create', NULL, NULL, NULL, 'POST', '/fund/holding', 13, 0, 1),
+    (2264, 1, 2250, 'API', 'PORTAL', '修改持仓', 'fund:holding:update', NULL, NULL, NULL, 'PUT', '/fund/holding/{id}', 14, 0, 1),
+    (2265, 1, 2250, 'API', 'PORTAL', '删除持仓', 'fund:holding:remove', NULL, NULL, NULL, 'DELETE', '/fund/holding/{id}', 15, 0, 1),
+    (2266, 1, 2250, 'API', 'PORTAL', '查询持仓汇总', 'fund:holding:summary', NULL, NULL, NULL, 'GET', '/fund/holding/summary', 16, 0, 1)
+ON DUPLICATE KEY UPDATE
+    `menu_name` = VALUES(`menu_name`),
+    `parent_id` = VALUES(`parent_id`),
+    `menu_type` = VALUES(`menu_type`),
+    `menu_scope` = VALUES(`menu_scope`),
+    `path` = VALUES(`path`),
+    `component` = VALUES(`component`),
+    `icon` = VALUES(`icon`),
+    `method` = VALUES(`method`),
+    `api_path` = VALUES(`api_path`),
+    `sort_order` = VALUES(`sort_order`),
+    `visible` = VALUES(`visible`),
+    `status` = VALUES(`status`);
+
+INSERT INTO `sys_role_menu` (`role_id`, `menu_id`, `tenant_id`)
+SELECT 1, `id`, 1 FROM `sys_menu`
+WHERE `id` IN (2250, 2251, 2252, 2253, 2254, 2260, 2261, 2262, 2263, 2264, 2265, 2266)
+ON DUPLICATE KEY UPDATE `tenant_id` = VALUES(`tenant_id`);
 
 INSERT INTO `sys_user_role` (`user_id`, `role_id`, `tenant_id`)
 VALUES (1, 1, 1)
@@ -381,6 +448,13 @@ ON DUPLICATE KEY UPDATE `tenant_id` = VALUES(`tenant_id`);
 INSERT INTO `sys_role_menu` (`role_id`, `menu_id`, `tenant_id`)
 SELECT 2, `id`, 1 FROM `sys_menu`
 WHERE `id` IN (4000, 4100, 4101, 4102, 4103, 4104, 4105, 4106, 4107)
+ON DUPLICATE KEY UPDATE `tenant_id` = VALUES(`tenant_id`);
+
+INSERT INTO `sys_role_menu` (`role_id`, `menu_id`, `tenant_id`)
+SELECT 1, `id`, 1 FROM `sys_menu`
+WHERE `tenant_id` = 1
+  AND `status` = 1
+  AND `del_flag` = '0'
 ON DUPLICATE KEY UPDATE `tenant_id` = VALUES(`tenant_id`);
 
 INSERT INTO `sys_oauth_client` (
