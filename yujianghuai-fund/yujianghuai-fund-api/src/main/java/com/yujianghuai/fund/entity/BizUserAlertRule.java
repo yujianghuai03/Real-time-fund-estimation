@@ -1,4 +1,4 @@
-package com.yujianghuai.biz.fund.entity;
+package com.yujianghuai.fund.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -12,11 +12,11 @@ import lombok.Data;
 
 @Data
 @TenantTable
-@Schema(description = "biz_user_portfolio")
-@TableName("biz_user_portfolio")
-public class BizUserPortfolio {
+@Schema(description = "biz_user_alert_rule")
+@TableName("biz_user_alert_rule")
+public class BizUserAlertRule {
 
-    @Schema(description = "投资组合ID")
+    @Schema(description = "提醒规则ID")
     @TableId(type = IdType.ASSIGN_ID)
     private Long id;
 
@@ -26,22 +26,28 @@ public class BizUserPortfolio {
     @Schema(description = "用户ID，关联sys_user.id")
     private Long userId;
 
-    @Schema(description = "组合名称")
-    private String portfolioName;
+    @Schema(description = "基金ID，关联biz_fund_info.id；为空表示用户级提醒")
+    private Long fundId;
 
-    @Schema(description = "组合类型: DEFAULT默认 CUSTOM自定义")
-    private String portfolioType;
+    @Schema(description = "提醒名称")
+    private String ruleName;
 
-    @Schema(description = "目标金额")
-    private BigDecimal targetAmount;
+    @Schema(description = "提醒类型: NAV净值 ESTIMATE估值 PROFIT收益 SIP定投 DIVIDEND分红")
+    private String ruleType;
 
-    @Schema(description = "风险偏好: 1保守 2稳健 3平衡 4积极 5激进")
-    private Integer riskPreference;
+    @Schema(description = "比较符: GT大于 GTE大于等于 LT小于 LTE小于等于 EQ等于")
+    private String compareOperator;
 
-    @Schema(description = "排序")
-    private Integer sortOrder;
+    @Schema(description = "阈值")
+    private BigDecimal thresholdValue;
 
-    @Schema(description = "状态: 0停用 1启用")
+    @Schema(description = "通知渠道，多个用逗号分隔")
+    private String notifyChannels;
+
+    @Schema(description = "最近触发时间")
+    private LocalDateTime lastTriggerTime;
+
+    @Schema(description = "状态: 0禁用 1启用")
     private Integer status;
 
     @Schema(description = "备注")

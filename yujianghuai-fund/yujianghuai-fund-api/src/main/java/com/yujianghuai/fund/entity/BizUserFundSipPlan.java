@@ -1,4 +1,4 @@
-package com.yujianghuai.biz.fund.entity;
+package com.yujianghuai.fund.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;

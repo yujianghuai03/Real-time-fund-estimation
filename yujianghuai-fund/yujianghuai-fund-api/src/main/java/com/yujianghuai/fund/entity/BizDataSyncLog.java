@@ -1,4 +1,4 @@
-package com.yujianghuai.biz.fund.entity;
+package com.yujianghuai.fund.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -6,41 +6,49 @@ import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.yujianghuai.common.tenant.TenantTable;
 import io.swagger.v3.oas.annotations.media.Schema;
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import lombok.Data;
 
 @Data
 @TenantTable
-@Schema(description = "biz_user_fund_sip_execution")
-@TableName("biz_user_fund_sip_execution")
-public class BizUserFundSipExecution {
+@Schema(description = "biz_data_sync_log")
+@TableName("biz_data_sync_log")
+public class BizDataSyncLog {
 
-    @Schema(description = "定投执行ID")
+    @Schema(description = "同步日志ID")
     @TableId(type = IdType.ASSIGN_ID)
     private Long id;
 
     @Schema(description = "租户ID，关联sys_tenant.id")
     private Long tenantId;
 
-    @Schema(description = "用户ID，关联sys_user.id")
-    private Long userId;
+    @Schema(description = "同步类型: FUND_INFO基金信息 NAV净值 ESTIMATE估值 DIVIDEND分红")
+    private String syncType;
 
-    @Schema(description = "定投计划ID，关联biz_user_fund_sip_plan.id")
-    private Long sipPlanId;
+    @Schema(description = "数据来源")
+    private String source;
 
-    @Schema(description = "交易记录ID，关联biz_user_fund_transaction.id")
-    private Long transactionId;
+    @Schema(description = "业务日期")
+    private LocalDate bizDate;
 
-    @Schema(description = "执行日期")
-    private LocalDate executeDate;
+    @Schema(description = "开始时间")
+    private LocalDateTime startTime;
 
-    @Schema(description = "执行金额")
-    private BigDecimal executeAmount;
+    @Schema(description = "完成时间")
+    private LocalDateTime finishTime;
 
-    @Schema(description = "执行状态: PENDING待执行 SUCCESS成功 FAILED失败 SKIPPED跳过")
-    private String executeStatus;
+    @Schema(description = "总记录数")
+    private Integer totalCount;
+
+    @Schema(description = "成功记录数")
+    private Integer successCount;
+
+    @Schema(description = "失败记录数")
+    private Integer failureCount;
+
+    @Schema(description = "同步状态: PROCESSING处理中 SUCCESS成功 PARTIAL部分成功 FAILED失败")
+    private String syncStatus;
 
     @Schema(description = "失败原因")
     private String failureReason;
