@@ -5,7 +5,10 @@ import com.yujianghuai.admin.entity.SysUser;
 import com.yujianghuai.admin.mapper.SysRelationMapper;
 import com.yujianghuai.admin.mapper.SysUserMapper;
 import com.yujianghuai.common.tenant.TenantContext;
+import java.util.ArrayList;
 import java.util.List;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -43,9 +46,22 @@ public class AuthUserDetailsService implements UserDetailsService {
             if (roles == null || roles.isEmpty()) {
                 roles = List.of("USER");
             }
+            List<GrantedAuthority> authorities = new ArrayList<>();
+            for (String role : roles) {
+                if (StringUtils.hasText(role)) {
+                    authorities.add(new SimpleGrantedAuthority("ROLE_" + role));
+                }
+            }
+            List<String> permissions = relationMapper.selectPermissionsByUserId(tenant.getId(), user.getId());
+            if (permissions != null) {
+                permissions.stream()
+                        .filter(StringUtils::hasText)
+                        .map(SimpleGrantedAuthority::new)
+                        .forEach(authorities::add);
+            }
             return User.withUsername(user.getUsername())
                     .password(user.getPassword())
-                    .roles(roles.toArray(String[]::new))
+                    .authorities(authorities)
                     .disabled(user.getStatus() == null || user.getStatus() != 1)
                     .build();
         });

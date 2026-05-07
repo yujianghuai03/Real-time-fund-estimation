@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -32,18 +33,21 @@ public class FundTagController {
     private final BizFundTagService fundTagService;
 
     @GetMapping("/list")
+    @PreAuthorize("hasAuthority('fund:tag:list')")
     @Operation(summary = "查询基金标签", description = "按标签名称、类型和状态查询标签分类")
     public R<List<FundTagVO>> list(@ParameterObject FundTagQueryRequest request) {
         return R.ok(fundTagService.list(request));
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('fund:tag:create')")
     @Operation(summary = "新增基金标签", description = "新增风格、行业、主题或自定义标签")
     public R<FundTagVO> create(@Validated(CreateGroup.class) @RequestBody FundTagRequest request) {
         return R.ok(fundTagService.create(request));
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('fund:tag:update')")
     @Operation(summary = "修改基金标签", description = "根据标签ID修改标签名称、类型、颜色、排序或状态")
     public R<FundTagVO> update(
             @Parameter(description = "标签ID", required = true) @PathVariable Long id,
@@ -52,6 +56,7 @@ public class FundTagController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('fund:tag:remove')")
     @Operation(summary = "删除基金标签", description = "根据标签ID逻辑删除标签，并清理基金标签关系")
     public R<Boolean> delete(@Parameter(description = "标签ID", required = true) @PathVariable Long id) {
         return R.ok(fundTagService.delete(id));

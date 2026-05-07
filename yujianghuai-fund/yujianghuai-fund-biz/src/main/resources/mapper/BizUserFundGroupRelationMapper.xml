@@ -21,4 +21,11 @@
         `id`, `tenant_id`, `user_id`, `group_id`, `holding_id`, `fund_id`, `sort_order`, `create_by`, `update_by`, `create_time`, `update_time`, `del_flag`
     </sql>
 
+    <delete id="deleteByHoldingId">
+        DELETE FROM `biz_user_fund_group_relation`
+        WHERE `tenant_id` = #{tenantId}
+          AND `user_id` = #{userId}
+          AND `holding_id` = #{holdingId}
+    </delete>
+
 </mapper>

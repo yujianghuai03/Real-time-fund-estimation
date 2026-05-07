@@ -16,6 +16,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -36,24 +37,28 @@ public class FundInfoController {
     private final BizFundInfoService fundInfoService;
 
     @GetMapping("/page")
+    @PreAuthorize("hasAuthority('fund:info:page')")
     @Operation(summary = "分页查询基金信息", description = "按基金代码、名称、类型、公司、风险、状态和标签筛选基金")
     public R<PageResult<FundInfoVO>> page(@ParameterObject @Validated(QueryGroup.class) FundInfoQueryRequest request) {
         return R.ok(fundInfoService.page(request));
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('fund:info:detail')")
     @Operation(summary = "查询基金详情", description = "根据基金ID查询基金基础信息和标签")
     public R<FundInfoVO> detail(@Parameter(description = "基金ID", required = true) @PathVariable Long id) {
         return R.ok(fundInfoService.detail(id));
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('fund:info:create')")
     @Operation(summary = "新增基金信息", description = "维护基金代码、名称、类型、基金公司、风险等级和标签")
     public R<FundInfoVO> create(@Validated(CreateGroup.class) @RequestBody FundInfoRequest request) {
         return R.ok(fundInfoService.create(request));
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('fund:info:update')")
     @Operation(summary = "修改基金信息", description = "根据基金ID修改基础信息，可同步修改标签")
     public R<FundInfoVO> update(
             @Parameter(description = "基金ID", required = true) @PathVariable Long id,
@@ -62,6 +67,7 @@ public class FundInfoController {
     }
 
     @PutMapping("/{id}/status")
+    @PreAuthorize("hasAuthority('fund:info:updateStatus')")
     @Operation(summary = "修改基金状态", description = "管理开放申购、暂停申购、暂停赎回、清盘等状态")
     public R<FundInfoVO> updateStatus(
             @Parameter(description = "基金ID", required = true) @PathVariable Long id,
@@ -70,6 +76,7 @@ public class FundInfoController {
     }
 
     @PutMapping("/{id}/tags")
+    @PreAuthorize("hasAuthority('fund:info:bindTags')")
     @Operation(summary = "绑定基金标签", description = "设置基金标签和分类，空列表表示清空标签")
     public R<FundInfoVO> bindTags(
             @Parameter(description = "基金ID", required = true) @PathVariable Long id,
@@ -78,6 +85,7 @@ public class FundInfoController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('fund:info:remove')")
     @Operation(summary = "删除基金信息", description = "根据基金ID执行逻辑删除，并清理标签关系")
     public R<Boolean> delete(@Parameter(description = "基金ID", required = true) @PathVariable Long id) {
         return R.ok(fundInfoService.delete(id));

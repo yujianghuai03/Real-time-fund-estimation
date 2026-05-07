@@ -1,7 +1,9 @@
 package com.yujianghuai.auth;
 
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.yujianghuai.auth.config.AuthProperties;
 import com.yujianghuai.common.tenant.TenantProperties;
+import org.apache.ibatis.annotations.Mapper;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -15,7 +17,13 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
         },
         exclude = UserDetailsServiceAutoConfiguration.class
 )
-@MapperScan("com.yujianghuai")
+@MapperScan(
+        basePackages = {
+                "com.yujianghuai.admin.mapper"
+        },
+        annotationClass = Mapper.class,
+        markerInterface = BaseMapper.class
+)
 @EnableConfigurationProperties({AuthProperties.class, TenantProperties.class})
 public class AuthApplication {
 

@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yujianghuai.fund.mapper.BizUserFundHoldingMapper">
+
+    <resultMap id="BaseResultMap" type="com.yujianghuai.fund.entity.BizUserFundHolding">
+        <id column="id" property="id" />
+        <result column="tenant_id" property="tenantId" />
+        <result column="user_id" property="userId" />
+        <result column="portfolio_id" property="portfolioId" />
+        <result column="fund_id" property="fundId" />
+        <result column="fund_code" property="fundCode" />
+        <result column="fund_name" property="fundName" />
+        <result column="holding_shares" property="holdingShares" />
+        <result column="available_shares" property="availableShares" />
+        <result column="frozen_shares" property="frozenShares" />
+        <result column="cost_amount" property="costAmount" />
+        <result column="cost_nav" property="costNav" />
+        <result column="market_value" property="marketValue" />
+        <result column="latest_nav" property="latestNav" />
+        <result column="latest_nav_date" property="latestNavDate" />
+        <result column="today_estimated_value" property="todayEstimatedValue" />
+        <result column="today_profit" property="todayProfit" />
+        <result column="holding_profit" property="holdingProfit" />
+        <result column="holding_profit_rate" property="holdingProfitRate" />
+        <result column="first_buy_date" property="firstBuyDate" />
+        <result column="last_trade_time" property="lastTradeTime" />
+        <result column="sort_order" property="sortOrder" />
+        <result column="status" property="status" />
+        <result column="create_by" property="createBy" />
+        <result column="update_by" property="updateBy" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+        <result column="del_flag" property="delFlag" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        `id`, `tenant_id`, `user_id`, `portfolio_id`, `fund_id`, `fund_code`, `fund_name`, `holding_shares`, `available_shares`, `frozen_shares`, `cost_amount`, `cost_nav`, `market_value`, `latest_nav`, `latest_nav_date`, `today_estimated_value`, `today_profit`, `holding_profit`, `holding_profit_rate`, `first_buy_date`, `last_trade_time`, `sort_order`, `status`, `create_by`, `update_by`, `create_time`, `update_time`, `del_flag`
+    </sql>
+
+    <resultMap id="SummaryResultMap" type="com.yujianghuai.fund.model.vo.FundHoldingSummaryVO">
+        <result column="dimension" property="dimension" />
+        <result column="dimension_id" property="dimensionId" />
+        <result column="dimension_name" property="dimensionName" />
+        <result column="holding_count" property="holdingCount" />
+        <result column="total_holding_shares" property="totalHoldingShares" />
+        <result column="total_cost_amount" property="totalCostAmount" />
+        <result column="total_market_value" property="totalMarketValue" />
+        <result column="total_today_estimated_value" property="totalTodayEstimatedValue" />
+        <result column="total_today_profit" property="totalTodayProfit" />
+        <result column="total_holding_profit" property="totalHoldingProfit" />
+        <result column="total_profit_loss_amount" property="totalProfitLossAmount" />
+        <result column="total_holding_profit_rate" property="totalHoldingProfitRate" />
+    </resultMap>
+
+    <sql id="HoldingSummaryFilter">
+        h.tenant_id = #{tenantId}
+        and h.user_id = #{userId}
+        and h.del_flag = '0'
+        <if test="query.status != null">
+            and h.status = #{query.status}
+        </if>
+        <if test="query.portfolioId != null">
+            and h.portfolio_id = #{query.portfolioId}
+        </if>
+        <if test="query.groupId != null">
+            and exists (
+                select 1
+                from biz_user_fund_group_relation grf
+                where grf.tenant_id = h.tenant_id
+                  and grf.user_id = h.user_id
+                  and grf.holding_id = h.id
+                  and grf.group_id = #{query.groupId}
+                  and grf.del_flag = '0'
+            )
+        </if>
+    </sql>
+
+    <sql id="SummaryColumns">
+        count(1) as holding_count,
+        coalesce(sum(h.holding_shares), 0) as total_holding_shares,
+        coalesce(sum(h.cost_amount), 0) as total_cost_amount,
+        coalesce(sum(h.market_value), 0) as total_market_value,
+        coalesce(sum(coalesce(h.today_estimated_value, h.market_value)), 0) as total_today_estimated_value,
+        coalesce(sum(coalesce(h.today_profit, 0)), 0) as total_today_profit,
+        coalesce(sum(coalesce(h.holding_profit, h.market_value - h.cost_amount)), 0) as total_holding_profit
+    </sql>
+
+    <select id="selectUserSummary" resultMap="SummaryResultMap">
+        select
+            s.dimension,
+            s.dimension_id,
+            s.dimension_name,
+            s.holding_count,
+            round(s.total_holding_shares, 4) as total_holding_shares,
+            round(s.total_cost_amount, 4) as total_cost_amount,
+            round(s.total_market_value, 4) as total_market_value,
+            round(s.total_today_estimated_value, 4) as total_today_estimated_value,
+            round(s.total_today_profit, 4) as total_today_profit,
+            round(s.total_holding_profit, 4) as total_holding_profit,
+            round(s.total_holding_profit, 4) as total_profit_loss_amount,
+            case
+                when s.total_cost_amount = 0 then 0
+                else round(s.total_holding_profit * 100 / s.total_cost_amount, 4)
+            end as total_holding_profit_rate
+        from (
+            select
+                'USER' as dimension,
+                #{userId} as dimension_id,
+                '当前账户' as dimension_name,
+                <include refid="SummaryColumns" />
+            from biz_user_fund_holding h
+            where <include refid="HoldingSummaryFilter" />
+        ) s
+    </select>
+
+    <select id="selectPortfolioSummary" resultMap="SummaryResultMap">
+        select
+            s.dimension,
+            s.dimension_id,
+            s.dimension_name,
+            s.holding_count,
+            round(s.total_holding_shares, 4) as total_holding_shares,
+            round(s.total_cost_amount, 4) as total_cost_amount,
+            round(s.total_market_value, 4) as total_market_value,
+            round(s.total_today_estimated_value, 4) as total_today_estimated_value,
+            round(s.total_today_profit, 4) as total_today_profit,
+            round(s.total_holding_profit, 4) as total_holding_profit,
+            round(s.total_holding_profit, 4) as total_profit_loss_amount,
+            case
+                when s.total_cost_amount = 0 then 0
+                else round(s.total_holding_profit * 100 / s.total_cost_amount, 4)
+            end as total_holding_profit_rate
+        from (
+            select
+                'PORTFOLIO' as dimension,
+                h.portfolio_id as dimension_id,
+                coalesce(p.portfolio_name, '未分配组合') as dimension_name,
+                <include refid="SummaryColumns" />
+            from biz_user_fund_holding h
+            left join biz_user_portfolio p
+              on p.tenant_id = h.tenant_id
+             and p.user_id = h.user_id
+             and p.id = h.portfolio_id
+             and p.del_flag = '0'
+            where <include refid="HoldingSummaryFilter" />
+            group by h.portfolio_id, p.portfolio_name
+        ) s
+        order by s.dimension_id is null, s.dimension_id
+    </select>
+
+    <select id="selectGroupSummary" resultMap="SummaryResultMap">
+        select
+            s.dimension,
+            s.dimension_id,
+            s.dimension_name,
+            s.holding_count,
+            round(s.total_holding_shares, 4) as total_holding_shares,
+            round(s.total_cost_amount, 4) as total_cost_amount,
+            round(s.total_market_value, 4) as total_market_value,
+            round(s.total_today_estimated_value, 4) as total_today_estimated_value,
+            round(s.total_today_profit, 4) as total_today_profit,
+            round(s.total_holding_profit, 4) as total_holding_profit,
+            round(s.total_holding_profit, 4) as total_profit_loss_amount,
+            case
+                when s.total_cost_amount = 0 then 0
+                else round(s.total_holding_profit * 100 / s.total_cost_amount, 4)
+            end as total_holding_profit_rate
+        from (
+            select
+                'GROUP' as dimension,
+                g.id as dimension_id,
+                g.group_name as dimension_name,
+                <include refid="SummaryColumns" />
+            from biz_user_fund_group_relation gr
+            inner join biz_user_fund_group g
+              on g.tenant_id = gr.tenant_id
+             and g.user_id = gr.user_id
+             and g.id = gr.group_id
+             and g.del_flag = '0'
+             and g.status = 1
+            inner join biz_user_fund_holding h
+              on h.tenant_id = gr.tenant_id
+             and h.user_id = gr.user_id
+             and h.id = gr.holding_id
+            where gr.tenant_id = #{tenantId}
+              and gr.user_id = #{userId}
+              and gr.del_flag = '0'
+              and <include refid="HoldingSummaryFilter" />
+            group by g.id, g.group_name
+        ) s
+        order by s.dimension_id
+    </select>
+
+</mapper>
