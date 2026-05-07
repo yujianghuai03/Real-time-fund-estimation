@@ -129,6 +129,7 @@ public class AuthorizationServerConfiguration {
                         .requestMatchers(
                                 "/auth/**",
                                 "/api/funds/search",
+                                "/admin-api/email/verification-code",
                                 "/api/funds/estimate/**",
                                 "/api/funds/indices",
                                 "/token/check_token",

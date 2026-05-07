@@ -31,11 +31,11 @@ mybatis-plus:
 auth:
   secret: change-me
   token-expire-seconds: 7200
-  demo-user:
-    username: admin
-    password: 123456
-    roles:
-      - ADMIN
+#  demo-user:
+#    username: admin
+#    password: 123456
+#    roles:
+#      - ADMIN
   oauth2:
     issuer: http://127.0.0.1:8080
     client-id: yujianghuai-client
@@ -51,6 +51,9 @@ auth:
     refresh-token-ttl: 7d
 
 app:
+  exception:
+    # 开发测试环境可开启业务异常堆栈日志，生产环境建议保持关闭
+    print-business-stack-trace: false
   email:
     host: ${APP_EMAIL_HOST:smtp.qq.com}
     port: ${APP_EMAIL_PORT:465}
@@ -70,5 +73,6 @@ app:
       - /api/funds/search
       - /api/funds/estimate/**
       - /api/funds/indices
+      - /admin-api/email/verification-code
     ignore-tables:
       - sys_tenant

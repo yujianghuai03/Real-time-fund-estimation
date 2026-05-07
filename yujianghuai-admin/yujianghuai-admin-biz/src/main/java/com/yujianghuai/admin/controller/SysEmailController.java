@@ -14,10 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * 邮件发送管理接口。
@@ -41,7 +38,7 @@ public class SysEmailController {
      * @param email 收件人邮箱
      * @return 发送结果
      */
-    @PostMapping("/verification-code")
+    @GetMapping("/verification-code")
     @Operation(summary = "发送邮箱验证码", description = "生成六位数字验证码并发送到指定邮箱")
     public R<Boolean> sendVerificationCode(
             @Parameter(description = "收件人邮箱", required = true)

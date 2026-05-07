@@ -465,7 +465,7 @@ INSERT INTO `sys_oauth_client` (
     1,
     1,
     'yujianghuai-client',
-    '$2a$10$Dqqst3cDtdYyTt2ae6VjVeXNUG3gMcE2Y5eN5EjAh4S9NINZeR9Pa',
+    'yujianghuai-secret',
     '默认客户端',
     'client_secret_basic,client_secret_post',
     'authorization_code,refresh_token,client_credentials,password,email_code',

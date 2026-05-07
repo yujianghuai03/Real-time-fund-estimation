@@ -1,1 +1,1 @@
-{"root":["./src/main.ts","./src/vite-env.d.ts","./src/composables/usetheme.ts","./src/app.vue","./src/components/layout/fund/appheader.vue"],"version":"5.9.3"}
+{"root":["./src/main.ts","./src/vite-env.d.ts","./src/api/auth.ts","./src/api/http.ts","./src/composables/usetheme.ts","./src/utils/authstorage.ts","./src/app.vue","./src/components/layout/fund/appheader.vue"],"version":"5.9.3"}

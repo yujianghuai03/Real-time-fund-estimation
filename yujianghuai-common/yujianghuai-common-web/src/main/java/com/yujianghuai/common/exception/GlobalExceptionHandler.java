@@ -4,6 +4,7 @@ import com.yujianghuai.common.web.R;
 import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.validation.BindException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -14,8 +15,14 @@ public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+    @Value("${app.exception.print-business-stack-trace:false}")
+    private boolean printBusinessStackTrace;
+
     @ExceptionHandler(BizException.class)
     public R<Void> handleBizException(BizException exception) {
+        if (printBusinessStackTrace) {
+            log.error("Business exception, code={}, message={}", exception.getCode(), exception.getMessage(), exception);
+        }
         return R.error(exception.getCode(), exception.getMessage());
     }
 

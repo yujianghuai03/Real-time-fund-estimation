@@ -140,7 +140,7 @@
               class="app-header__user-menu-item app-header__user-menu-item--danger"
               type="button"
               role="menuitem"
-              @click="handleUserMenuAction"
+              @click="handleLogout"
             >
               <el-icon :size="16">
                 <SwitchButton />
@@ -229,11 +229,20 @@
             <button
               type="button"
               role="tab"
-              :aria-selected="loginMode === 'login'"
-              :class="{ 'app-header__login-tab--active': loginMode === 'login' }"
-              @click="setLoginMode('login')"
+              :aria-selected="loginMode === 'emailCode'"
+              :class="{ 'app-header__login-tab--active': loginMode === 'emailCode' }"
+              @click="setLoginMode('emailCode')"
             >
-              登录
+              验证码登录
+            </button>
+            <button
+              type="button"
+              role="tab"
+              :aria-selected="loginMode === 'password'"
+              :class="{ 'app-header__login-tab--active': loginMode === 'password' }"
+              @click="setLoginMode('password')"
+            >
+              密码登录
             </button>
             <button
               type="button"
@@ -248,7 +257,17 @@
 
           <form class="app-header__login-form" @submit.prevent="handleLoginSubmit">
             <label class="app-header__login-field">
-              <span>邮箱</span>
+              <span>租户 ID</span>
+              <div class="app-header__login-input">
+                <el-icon :size="17">
+                  <Setting />
+                </el-icon>
+                <input v-model="loginForm.tenantId" type="text" placeholder="请输入租户 ID" autocomplete="organization" />
+              </div>
+            </label>
+
+            <label class="app-header__login-field">
+              <span>{{ loginMode === 'password' ? '邮箱 / 用户名' : '邮箱' }}</span>
               <div class="app-header__login-input">
                 <el-icon :size="17">
                   <Message />
@@ -257,7 +276,34 @@
               </div>
             </label>
 
-            <label v-if="loginMode !== 'forgot'" class="app-header__login-field">
+            <label v-if="loginMode === 'emailCode'" class="app-header__login-field">
+              <span>邮箱验证码</span>
+              <div class="app-header__login-code-row">
+                <div class="app-header__login-input">
+                  <el-icon :size="17">
+                    <Lock />
+                  </el-icon>
+                  <input
+                    v-model="loginForm.code"
+                    type="text"
+                    placeholder="请输入验证码"
+                    inputmode="numeric"
+                    maxlength="8"
+                    autocomplete="one-time-code"
+                  />
+                </div>
+                <button
+                  class="app-header__login-code-button"
+                  type="button"
+                  :disabled="isVerificationCodeButtonDisabled"
+                  @click="handleSendVerificationCode"
+                >
+                  {{ verificationCodeButtonText }}
+                </button>
+              </div>
+            </label>
+
+            <label v-if="loginMode === 'password' || loginMode === 'register'" class="app-header__login-field">
               <span>密码</span>
               <div class="app-header__login-input">
                 <el-icon :size="17">
@@ -287,48 +333,50 @@
               </div>
             </label>
 
-            <div v-if="loginMode === 'login'" class="app-header__login-meta">
+            <div v-if="loginMode === 'password'" class="app-header__login-meta">
               <label>
                 <input v-model="loginForm.remember" type="checkbox" />
                 <span>保持登录</span>
               </label>
-              <button type="button" @click="setLoginMode('forgot')">忘记密码</button>
+              <button type="button" @click="setLoginMode('emailCode')">使用验证码登录</button>
             </div>
 
-            <p v-if="loginMode === 'forgot'" class="app-header__login-hint">
-              输入邮箱后，我们会发送重置密码链接到你的邮箱。
+            <p v-if="loginMode === 'emailCode'" class="app-header__login-hint">
+              验证码发送成功后 60 秒内不可重复发送，登录请求会携带当前租户 ID。
             </p>
 
-            <button class="app-header__login-submit" type="submit">{{ loginSubmitText }}</button>
+            <button class="app-header__login-submit" type="submit" :disabled="isLoginSubmitting">
+              {{ loginSubmitText }}
+            </button>
           </form>
 
-          <div v-if="loginMode !== 'forgot'" class="app-header__login-divider" role="presentation">
+          <div v-if="loginMode !== 'register'" class="app-header__login-divider" role="presentation">
             <span>其他方式登录</span>
           </div>
 
-          <div v-if="loginMode !== 'forgot'" class="app-header__login-providers">
-            <button type="button">
+          <div v-if="loginMode !== 'register'" class="app-header__login-providers">
+            <button type="button" @click="setLoginMode('password')">
               <el-icon :size="16">
-                <Connection />
+                <Lock />
               </el-icon>
-              GitHub
+              密码登录
             </button>
-            <button type="button">
+            <button type="button" @click="setLoginMode('emailCode')">
               <el-icon :size="16">
-                <User />
+                <Message />
               </el-icon>
-              手机验证码
+              邮箱验证码
             </button>
           </div>
 
           <footer class="app-header__login-footer">
-            <template v-if="loginMode === 'login'">
+            <template v-if="loginMode !== 'register'">
               <span>还没有账号？</span>
               <button type="button" @click="setLoginMode('register')">创建账号</button>
             </template>
             <template v-else>
-              <span>{{ loginMode === 'register' ? '已有账号？' : '想起密码了？' }}</span>
-              <button type="button" @click="setLoginMode('login')">返回登录</button>
+              <span>已有账号？</span>
+              <button type="button" @click="setLoginMode('emailCode')">返回登录</button>
             </template>
           </footer>
         </section>
@@ -339,6 +387,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, watch, ref } from 'vue'
+import { ElMessage } from 'element-plus'
 import {
   Calendar,
   Camera,
@@ -355,39 +404,57 @@ import {
   Setting,
   Sunny,
   SwitchButton,
-  User,
 } from '@element-plus/icons-vue'
 
+import { loginByEmailCode, loginByPassword, sendEmailVerificationCode } from '@/api/auth'
 import fundLogoUrl from '@/assets/logo/fund-logo.svg'
 import userAvatarUrl from '@/assets/logo/user-avatar.svg'
 import { useTheme } from '@/composables/useTheme'
+import {
+  clearAuthSession,
+  getStoredAuthSession,
+  getStoredTenantId,
+  saveOAuthToken,
+  saveTenantId,
+} from '@/utils/authStorage'
 
 const keyword = ref('')
 const isSearchActive = ref(false)
 const isCaptureDialogVisible = ref(false)
 const isLoginDialogVisible = ref(false)
 const isUserMenuVisible = ref(false)
-const isUserLoggedIn = ref(false)
+const storedSession = getStoredAuthSession()
+const isUserLoggedIn = ref(Boolean(storedSession))
 const captureInputRef = ref<HTMLInputElement | null>(null)
 const userMenuRef = ref<HTMLElement | null>(null)
 const { currentThemeLabel, isDarkTheme, toggleTheme } = useTheme()
-const userProfile = {
-  email: 'xhh64481@gmail.com',
-  syncedAt: '05-07 14:56',
-}
-type LoginMode = 'login' | 'forgot' | 'register'
+const userProfile = ref({
+  email: storedSession?.email || '未登录',
+  syncedAt: storedSession ? new Date().toLocaleString('zh-CN', { hour12: false }).slice(5, 16) : '--',
+})
+type LoginMode = 'emailCode' | 'password' | 'register'
 
-const loginMode = ref<LoginMode>('login')
+const loginMode = ref<LoginMode>('emailCode')
 const loginForm = ref({
+  tenantId: storedSession?.tenantId || getStoredTenantId(),
   email: '',
+  code: '',
   password: '',
   confirmPassword: '',
   remember: true,
 })
+const isLoginSubmitting = ref(false)
+const isSendingVerificationCode = ref(false)
+const verificationCooldown = ref(0)
+let verificationTimer: ReturnType<typeof window.setInterval> | undefined
 
 const loginDialogSubtitle = computed(() => {
-  if (loginMode.value === 'forgot') {
-    return '找回账号密码'
+  if (loginMode.value === 'emailCode') {
+    return '使用邮箱验证码快速登录'
+  }
+
+  if (loginMode.value === 'password') {
+    return '使用账号密码登录'
   }
 
   if (loginMode.value === 'register') {
@@ -398,8 +465,16 @@ const loginDialogSubtitle = computed(() => {
 })
 
 const loginSubmitText = computed(() => {
-  if (loginMode.value === 'forgot') {
-    return '发送重置链接'
+  if (isLoginSubmitting.value) {
+    return '处理中...'
+  }
+
+  if (loginMode.value === 'emailCode') {
+    return '验证码登录'
+  }
+
+  if (loginMode.value === 'password') {
+    return '密码登录'
   }
 
   if (loginMode.value === 'register') {
@@ -408,6 +483,109 @@ const loginSubmitText = computed(() => {
 
   return '登录'
 })
+
+const verificationCodeButtonText = computed(() => {
+  if (verificationCooldown.value > 0) {
+    return `${verificationCooldown.value}s 后重试`
+  }
+
+  if (isSendingVerificationCode.value) {
+    return '发送中...'
+  }
+
+  return '发送验证码'
+})
+
+const isVerificationCodeButtonDisabled = computed(() => {
+  return isSendingVerificationCode.value || verificationCooldown.value > 0
+})
+
+const isValidEmail = (email: string): boolean => {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+}
+
+const normalizeLoginForm = () => {
+  const tenantId = loginForm.value.tenantId.trim() || '1'
+  const email = loginForm.value.email.trim()
+  const code = loginForm.value.code.trim()
+  const password = loginForm.value.password
+
+  return {
+    tenantId,
+    email,
+    code,
+    password
+  }
+}
+
+const requireTenantAndEmail = (): { tenantId: string; email: string } | null => {
+  const { tenantId, email } = normalizeLoginForm()
+
+  if (!tenantId) {
+    ElMessage.warning('请输入租户 ID')
+    return null
+  }
+
+  if (!isValidEmail(email)) {
+    ElMessage.warning('请输入正确的邮箱地址')
+    return null
+  }
+
+  saveTenantId(tenantId)
+
+  return {
+    tenantId,
+    email
+  }
+}
+
+const startVerificationCooldown = (): void => {
+  verificationCooldown.value = 60
+
+  if (verificationTimer) {
+    window.clearInterval(verificationTimer)
+  }
+
+  verificationTimer = window.setInterval(() => {
+    verificationCooldown.value -= 1
+
+    if (verificationCooldown.value <= 0 && verificationTimer) {
+      window.clearInterval(verificationTimer)
+      verificationTimer = undefined
+    }
+  }, 1000)
+}
+
+const markLoginSuccess = (email: string): void => {
+  isUserLoggedIn.value = true
+  userProfile.value = {
+    email,
+    syncedAt: new Date().toLocaleString('zh-CN', { hour12: false }).slice(5, 16),
+  }
+  closeLoginDialog()
+  closeUserMenu()
+}
+
+const handleSendVerificationCode = async (): Promise<void> => {
+  const payload = requireTenantAndEmail()
+
+  if (!payload || isVerificationCodeButtonDisabled.value) {
+    return
+  }
+
+  isSendingVerificationCode.value = true
+
+  try {
+    await sendEmailVerificationCode(payload.email, payload.tenantId)
+    startVerificationCooldown()
+    ElMessage.success('验证码已发送，请查看邮箱')
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '验证码发送失败'
+    ElMessage.error(message)
+  } finally {
+    isSendingVerificationCode.value = false
+  }
+}
 
 const handleSearchActionClick = (): void => {
   if (isSearchActive.value) {
@@ -437,18 +615,79 @@ const handleUserMenuAction = (): void => {
   closeUserMenu()
 }
 
+const handleLogout = (): void => {
+  clearAuthSession()
+  isUserLoggedIn.value = false
+  userProfile.value = {
+    email: '未登录',
+    syncedAt: '--',
+  }
+  closeUserMenu()
+  ElMessage.success('已退出登录')
+}
+
 const setLoginMode = (mode: LoginMode): void => {
   loginMode.value = mode
 }
 
 const openLoginDialog = (): void => {
   closeUserMenu()
-  setLoginMode('login')
+  setLoginMode('emailCode')
   isLoginDialogVisible.value = true
 }
 
-const handleLoginSubmit = (): void => {
-  closeLoginDialog()
+const handleLoginSubmit = async (): Promise<void> => {
+  const payload = requireTenantAndEmail()
+
+  if (!payload) {
+    return
+  }
+
+  if (loginMode.value === 'emailCode' && !loginForm.value.code.trim()) {
+    ElMessage.warning('请输入邮箱验证码')
+    return
+  }
+
+  if ((loginMode.value === 'password' || loginMode.value === 'register') && !loginForm.value.password) {
+    ElMessage.warning('请输入密码')
+    return
+  }
+
+  if (loginMode.value === 'register') {
+    if (loginForm.value.password !== loginForm.value.confirmPassword) {
+      ElMessage.warning('两次输入的密码不一致')
+      return
+    }
+
+    ElMessage.info('注册接口暂未接入，请先使用邮箱验证码登录')
+    return
+  }
+
+  isLoginSubmitting.value = true
+
+  try {
+    const tokenResponse =
+      loginMode.value === 'emailCode'
+        ? await loginByEmailCode({
+            tenantId: payload.tenantId,
+            email: payload.email,
+            code: loginForm.value.code.trim(),
+          })
+        : await loginByPassword({
+            tenantId: payload.tenantId,
+            username: payload.email,
+            password: loginForm.value.password,
+          })
+
+    const session = saveOAuthToken(tokenResponse, payload.tenantId, payload.email)
+    markLoginSuccess(session.email)
+    ElMessage.success('登录成功')
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '登录失败'
+    ElMessage.error(message)
+  } finally {
+    isLoginSubmitting.value = false
+  }
 }
 
 const handleGlobalKeydown = (event: KeyboardEvent): void => {
@@ -496,6 +735,10 @@ watch(isUserMenuVisible, (isVisible) => {
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleGlobalKeydown)
   document.removeEventListener('pointerdown', handleGlobalPointerdown)
+
+  if (verificationTimer) {
+    window.clearInterval(verificationTimer)
+  }
 })
 
 const triggerImageSelect = (): void => {
@@ -793,7 +1036,7 @@ const refreshHeader = (): void => {
 
 .app-header__login-card {
   position: relative;
-  width: min(430px, 100%);
+  width: min(460px, 100%);
   padding: 24px;
   color: var(--text-color);
   background: var(--card-bg-strong);
@@ -876,7 +1119,7 @@ const refreshHeader = (): void => {
 
 .app-header__login-tabs {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 4px;
   height: 42px;
   padding: 4px;
@@ -886,6 +1129,7 @@ const refreshHeader = (): void => {
   background: var(--input-bg);
 
   button {
+    min-width: 0;
     border: 0;
     border-radius: 9px;
     color: var(--text-muted);
@@ -902,6 +1146,44 @@ const refreshHeader = (): void => {
       outline: 0;
       box-shadow: 0 0 0 3px var(--focus-ring);
     }
+  }
+}
+
+.app-header__login-code-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 118px;
+  gap: 10px;
+}
+
+.app-header__login-code-button {
+  height: 44px;
+  border: 1px solid rgba(var(--primary-color-rgb), 0.38);
+  border-radius: 13px;
+  color: var(--primary-color);
+  background: rgba(var(--primary-color-rgb), 0.1);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 800;
+  transition:
+    color 160ms ease,
+    border-color 160ms ease,
+    background-color 160ms ease,
+    transform 160ms ease;
+
+  &:hover,
+  &:focus-visible {
+    border-color: rgba(var(--primary-color-rgb), 0.54);
+    background: rgba(var(--primary-color-rgb), 0.16);
+    outline: 0;
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    color: var(--text-subtle);
+    border-color: var(--border-color-strong);
+    background: var(--button-bg);
+    cursor: not-allowed;
+    transform: none;
   }
 }
 
@@ -1016,6 +1298,12 @@ const refreshHeader = (): void => {
     filter: brightness(1.05);
     outline: 0;
     transform: translateY(-1px);
+  }
+
+  &:disabled {
+    filter: grayscale(0.2) brightness(0.84);
+    cursor: wait;
+    transform: none;
   }
 }
 
@@ -1398,6 +1686,23 @@ const refreshHeader = (): void => {
 
   .app-header__search {
     height: 40px;
+  }
+
+  .app-header__login-tabs {
+    height: auto;
+    grid-template-columns: 1fr;
+
+    button {
+      min-height: 34px;
+    }
+  }
+
+  .app-header__login-code-row {
+    grid-template-columns: 1fr;
+  }
+
+  .app-header__login-code-button {
+    width: 100%;
   }
 }
 </style>
