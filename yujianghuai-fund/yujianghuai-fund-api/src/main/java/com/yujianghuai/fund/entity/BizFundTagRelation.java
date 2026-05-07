@@ -11,7 +11,7 @@ import lombok.Data;
 
 @Data
 @TenantTable
-@Schema(description = "biz_fund_tag_relation")
+@Schema(description = "基金标签关系表")
 @TableName("biz_fund_tag_relation")
 public class BizFundTagRelation {
 

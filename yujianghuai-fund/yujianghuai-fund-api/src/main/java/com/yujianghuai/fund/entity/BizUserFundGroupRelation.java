@@ -11,7 +11,7 @@ import lombok.Data;
 
 @Data
 @TenantTable
-@Schema(description = "biz_user_fund_group_relation")
+@Schema(description = "用户基金分组关系表")
 @TableName("biz_user_fund_group_relation")
 public class BizUserFundGroupRelation {
 

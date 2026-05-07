@@ -12,7 +12,7 @@ import lombok.Data;
 
 @Data
 @TenantTable
-@Schema(description = "biz_fund_realtime_estimate")
+@Schema(description = "基金实时估值表")
 @TableName("biz_fund_realtime_estimate")
 public class BizFundRealtimeEstimate {
 

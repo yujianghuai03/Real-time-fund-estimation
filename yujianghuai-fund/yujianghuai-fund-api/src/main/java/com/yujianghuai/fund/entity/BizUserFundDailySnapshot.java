@@ -13,7 +13,7 @@ import lombok.Data;
 
 @Data
 @TenantTable
-@Schema(description = "biz_user_fund_daily_snapshot")
+@Schema(description = "用户基金每日收益快照表")
 @TableName("biz_user_fund_daily_snapshot")
 public class BizUserFundDailySnapshot {
 

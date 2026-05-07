@@ -12,7 +12,7 @@ import lombok.Data;
 
 @Data
 @TenantTable
-@Schema(description = "biz_user_alert_log")
+@Schema(description = "用户提醒通知日志表")
 @TableName("biz_user_alert_log")
 public class BizUserAlertLog {
 

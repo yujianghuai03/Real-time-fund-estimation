@@ -13,7 +13,7 @@ import lombok.Data;
 
 @Data
 @TenantTable
-@Schema(description = "biz_user_fund_sip_execution")
+@Schema(description = "用户基金定投执行记录表")
 @TableName("biz_user_fund_sip_execution")
 public class BizUserFundSipExecution {
 

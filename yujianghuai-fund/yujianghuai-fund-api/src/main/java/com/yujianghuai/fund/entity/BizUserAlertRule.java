@@ -12,7 +12,7 @@ import lombok.Data;
 
 @Data
 @TenantTable
-@Schema(description = "biz_user_alert_rule")
+@Schema(description = "用户提醒规则表")
 @TableName("biz_user_alert_rule")
 public class BizUserAlertRule {
 

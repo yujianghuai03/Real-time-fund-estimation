@@ -12,7 +12,7 @@ import lombok.Data;
 
 @Data
 @TenantTable
-@Schema(description = "biz_data_sync_log")
+@Schema(description = "业务数据同步日志表")
 @TableName("biz_data_sync_log")
 public class BizDataSyncLog {
 

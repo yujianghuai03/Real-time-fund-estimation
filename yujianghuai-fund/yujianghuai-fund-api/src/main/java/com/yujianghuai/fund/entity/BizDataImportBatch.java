@@ -11,7 +11,7 @@ import lombok.Data;
 
 @Data
 @TenantTable
-@Schema(description = "biz_data_import_batch")
+@Schema(description = "业务数据导入批次表")
 @TableName("biz_data_import_batch")
 public class BizDataImportBatch {
 

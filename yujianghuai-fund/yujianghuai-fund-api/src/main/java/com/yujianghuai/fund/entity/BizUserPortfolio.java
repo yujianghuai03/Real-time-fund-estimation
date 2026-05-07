@@ -12,7 +12,7 @@ import lombok.Data;
 
 @Data
 @TenantTable
-@Schema(description = "biz_user_portfolio")
+@Schema(description = "用户投资组合表")
 @TableName("biz_user_portfolio")
 public class BizUserPortfolio {
 

@@ -13,7 +13,7 @@ import lombok.Data;
 
 @Data
 @TenantTable
-@Schema(description = "biz_fund_dividend")
+@Schema(description = "基金分红记录表")
 @TableName("biz_fund_dividend")
 public class BizFundDividend {
 
