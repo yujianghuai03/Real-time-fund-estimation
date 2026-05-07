@@ -1,5 +1,6 @@
 package com.yujianghuai.common.web;
 
+import com.yujianghuai.common.exception.ErrorCode;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.io.Serial;
 import java.io.Serializable;
@@ -37,6 +38,18 @@ public class R<T> implements Serializable {
 
     public static <T> R<T> fail(Integer code, String message) {
         return new R<>(code, message, null);
+    }
+
+    public static <T> R<T> error(String message) {
+        return fail(message);
+    }
+
+    public static <T> R<T> error(Integer code, String message) {
+        return fail(code, message);
+    }
+
+    public static <T> R<T> error(ErrorCode errorCode, String message) {
+        return fail(errorCode.getCode(), message);
     }
 
     public Integer getCode() {

@@ -16,7 +16,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BizException.class)
     public R<Void> handleBizException(BizException exception) {
-        return R.fail(exception.getCode(), exception.getMessage());
+        return R.error(exception.getCode(), exception.getMessage());
     }
 
     @ExceptionHandler({
@@ -25,12 +25,12 @@ public class GlobalExceptionHandler {
             ConstraintViolationException.class
     })
     public R<Void> handleValidationException(Exception exception) {
-        return R.fail(400, exception.getMessage());
+        return R.error(400, exception.getMessage());
     }
 
     @ExceptionHandler(Exception.class)
     public R<Void> handleException(Exception exception) {
         log.error("Unhandled exception", exception);
-        return R.fail("system error");
+        return R.error("system error");
     }
 }

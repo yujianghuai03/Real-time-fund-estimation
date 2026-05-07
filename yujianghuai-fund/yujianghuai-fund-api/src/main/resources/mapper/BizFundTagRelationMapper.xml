@@ -18,4 +18,16 @@
         `id`, `tenant_id`, `fund_id`, `tag_id`, `create_by`, `update_by`, `create_time`, `update_time`, `del_flag`
     </sql>
 
+    <delete id="deleteByFundId">
+        DELETE FROM `biz_fund_tag_relation`
+        WHERE `tenant_id` = #{tenantId}
+          AND `fund_id` = #{fundId}
+    </delete>
+
+    <delete id="deleteByTagId">
+        DELETE FROM `biz_fund_tag_relation`
+        WHERE `tenant_id` = #{tenantId}
+          AND `tag_id` = #{tagId}
+    </delete>
+
 </mapper>
