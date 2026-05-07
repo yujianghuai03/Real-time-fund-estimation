@@ -1,0 +1,127 @@
+:root,
+:root[data-theme="dark-blue"] {
+  --primary-color: #00c2ff;
+  --primary-color-rgb: 0, 194, 255;
+  --bg-color: #081221;
+  --bg-gradient: radial-gradient(circle at 16% 10%, rgba(0, 194, 255, 0.16), transparent 28%),
+    radial-gradient(circle at 86% 18%, rgba(45, 212, 191, 0.1), transparent 26%),
+    linear-gradient(180deg, #081221 0%, #0a1426 48%, #07101d 100%);
+  --header-bg: linear-gradient(90deg, #10233f, #132b4a);
+  --aside-bg: rgba(12, 28, 51, 0.76);
+  --main-bg: rgba(8, 18, 33, 0.42);
+  --footer-bg: rgba(9, 22, 39, 0.8);
+  --card-bg: rgba(255, 255, 255, 0.08);
+  --card-bg-strong: rgba(255, 255, 255, 0.11);
+  --glass-bg: rgba(255, 255, 255, 0.07);
+  --input-bg: rgba(255, 255, 255, 0.08);
+  --button-bg: rgba(255, 255, 255, 0.07);
+  --hover-bg: rgba(255, 255, 255, 0.12);
+  --border-color: rgba(255, 255, 255, 0.05);
+  --border-color-strong: rgba(255, 255, 255, 0.14);
+  --text-color: #f6f9ff;
+  --text-color-rgb: 246, 249, 255;
+  --text-muted: rgba(220, 236, 255, 0.62);
+  --text-subtle: rgba(220, 236, 255, 0.46);
+  --placeholder-color: rgba(222, 235, 255, 0.5);
+  --shadow-color: rgba(0, 0, 0, 0.25);
+  --shadow-soft: 0 2px 12px var(--shadow-color);
+  --shadow-card: 0 18px 42px rgba(0, 0, 0, 0.2);
+  --focus-ring: rgba(0, 194, 255, 0.14);
+  --logo-bg: rgba(255, 255, 255, 0.08);
+  --table-header-bg: rgba(255, 255, 255, 0.08);
+  --table-row-bg: rgba(255, 255, 255, 0.045);
+  --table-row-hover-bg: rgba(255, 255, 255, 0.1);
+}
+
+:root[data-theme="light"] {
+  --primary-color: #409eff;
+  --primary-color-rgb: 64, 158, 255;
+  --bg-color: #f5f7fb;
+  --bg-gradient: radial-gradient(circle at 14% 8%, rgba(64, 158, 255, 0.14), transparent 30%),
+    radial-gradient(circle at 86% 20%, rgba(20, 184, 166, 0.1), transparent 28%),
+    linear-gradient(180deg, #f5f7fb 0%, #eef3fa 100%);
+  --header-bg: linear-gradient(90deg, rgba(255, 255, 255, 0.92), rgba(236, 244, 255, 0.88));
+  --aside-bg: rgba(255, 255, 255, 0.78);
+  --main-bg: rgba(255, 255, 255, 0.42);
+  --footer-bg: rgba(255, 255, 255, 0.82);
+  --card-bg: rgba(255, 255, 255, 0.86);
+  --card-bg-strong: rgba(255, 255, 255, 0.96);
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --input-bg: rgba(15, 23, 42, 0.05);
+  --button-bg: rgba(15, 23, 42, 0.05);
+  --hover-bg: rgba(64, 158, 255, 0.12);
+  --border-color: rgba(15, 23, 42, 0.08);
+  --border-color-strong: rgba(15, 23, 42, 0.14);
+  --text-color: #162033;
+  --text-color-rgb: 22, 32, 51;
+  --text-muted: rgba(22, 32, 51, 0.62);
+  --text-subtle: rgba(22, 32, 51, 0.44);
+  --placeholder-color: rgba(22, 32, 51, 0.42);
+  --shadow-color: rgba(15, 23, 42, 0.12);
+  --shadow-soft: 0 2px 12px var(--shadow-color);
+  --shadow-card: 0 18px 42px rgba(15, 23, 42, 0.1);
+  --focus-ring: rgba(64, 158, 255, 0.16);
+  --logo-bg: rgba(64, 158, 255, 0.08);
+  --table-header-bg: rgba(15, 23, 42, 0.045);
+  --table-row-bg: rgba(255, 255, 255, 0.68);
+  --table-row-hover-bg: rgba(64, 158, 255, 0.1);
+}
+
+:root[data-theme="oled-black"] {
+  --primary-color: #00c2ff;
+  --primary-color-rgb: 0, 194, 255;
+  --bg-color: #050505;
+  --bg-gradient: radial-gradient(circle at 14% 8%, rgba(0, 194, 255, 0.1), transparent 28%),
+    radial-gradient(circle at 82% 18%, rgba(255, 255, 255, 0.055), transparent 26%),
+    linear-gradient(180deg, #050505 0%, #090909 100%);
+  --header-bg: linear-gradient(90deg, #050505, #111111);
+  --aside-bg: rgba(8, 8, 8, 0.88);
+  --main-bg: rgba(5, 5, 5, 0.56);
+  --footer-bg: rgba(7, 7, 7, 0.9);
+  --card-bg: rgba(255, 255, 255, 0.055);
+  --card-bg-strong: rgba(255, 255, 255, 0.08);
+  --glass-bg: rgba(255, 255, 255, 0.045);
+  --input-bg: rgba(255, 255, 255, 0.06);
+  --button-bg: rgba(255, 255, 255, 0.055);
+  --hover-bg: rgba(255, 255, 255, 0.12);
+  --border-color: rgba(255, 255, 255, 0.08);
+  --border-color-strong: rgba(255, 255, 255, 0.16);
+  --text-color: #f8fafc;
+  --text-color-rgb: 248, 250, 252;
+  --text-muted: rgba(248, 250, 252, 0.6);
+  --text-subtle: rgba(248, 250, 252, 0.42);
+  --placeholder-color: rgba(248, 250, 252, 0.44);
+  --shadow-color: rgba(0, 0, 0, 0.42);
+  --shadow-soft: 0 2px 12px var(--shadow-color);
+  --shadow-card: 0 18px 42px rgba(0, 0, 0, 0.32);
+  --focus-ring: rgba(0, 194, 255, 0.14);
+  --logo-bg: rgba(255, 255, 255, 0.06);
+  --table-header-bg: rgba(255, 255, 255, 0.06);
+  --table-row-bg: rgba(255, 255, 255, 0.035);
+  --table-row-hover-bg: rgba(255, 255, 255, 0.1);
+}
+
+:root {
+  --el-color-primary: var(--primary-color);
+  --el-bg-color: var(--card-bg-strong);
+  --el-bg-color-overlay: var(--card-bg-strong);
+  --el-fill-color-blank: var(--input-bg);
+  --el-border-color: var(--border-color-strong);
+  --el-border-color-light: var(--border-color);
+  --el-text-color-primary: var(--text-color);
+  --el-text-color-regular: var(--text-muted);
+  --el-text-color-placeholder: var(--placeholder-color);
+  --el-box-shadow-light: var(--shadow-card);
+}
+
+html,
+body,
+#app,
+.theme-transition,
+.theme-transition * {
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease,
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
+}
