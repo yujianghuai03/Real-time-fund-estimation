@@ -1,5 +1,8 @@
 package com.yujianghuai.auth.endpoint;
 
+import com.yujianghuai.auth.model.*;
+import com.yujianghuai.auth.service.AuthAccountService;
+import com.yujianghuai.auth.service.AuthService;
 import com.yujianghuai.auth.service.AuthTenantService;
 import com.yujianghuai.auth.service.TokenService;
 import com.yujianghuai.common.web.R;
@@ -8,7 +11,10 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+
+import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.core.OAuth2AccessToken;
@@ -18,12 +24,7 @@ import org.springframework.security.oauth2.server.authorization.OAuth2Authorizat
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService;
 import org.springframework.security.oauth2.server.authorization.OAuth2TokenType;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/token")
@@ -37,15 +38,21 @@ public class AuthTokenEndpoint {
     private final JwtDecoder jwtDecoder;
     private final TokenService tokenService;
     private final AuthTenantService authTenantService;
+    private final AuthService authService;
+    private final AuthAccountService authAccountService;
 
     public AuthTokenEndpoint(OAuth2AuthorizationService authorizationService,
                              JwtDecoder jwtDecoder,
                              TokenService tokenService,
-                             AuthTenantService authTenantService) {
+                             AuthTenantService authTenantService,
+                             AuthService authService,
+                             AuthAccountService authAccountService) {
         this.authorizationService = authorizationService;
         this.jwtDecoder = jwtDecoder;
         this.tokenService = tokenService;
         this.authTenantService = authTenantService;
+        this.authService = authService;
+        this.authAccountService = authAccountService;
     }
 
     @DeleteMapping("/logout")
@@ -103,5 +110,28 @@ public class AuthTokenEndpoint {
             }
         }
         return R.ok(claims);
+    }
+    @GetMapping("/check")
+    @Operation(summary = "校验令牌", description = "校验 Authorization 请求头中的访问令牌")
+    public R<Map<String, Object>> check(
+            @Parameter(description = "Bearer Token", required = true)
+            @RequestHeader("Authorization") String authorization) {
+        return R.ok(authService.check(authorization));
+    }
+    @PostMapping("/login")
+    @Operation(summary = "用户登录", description = "根据租户、用户名和密码进行登录并返回访问令牌")
+    public R<TokenResponse> login(@Valid @RequestBody LoginRequest request) {
+        return R.ok(authService.login(request));
+    }
+    @GetMapping("/tenants")
+    @Operation(summary = "查询租户列表", description = "获取启用状态的租户列表，用于登录和注册选择")
+    public R<List<TenantOptionVO>> tenants() {
+        return R.ok(authTenantService.listTenants());
+    }
+
+    @PostMapping("/register")
+    @Operation(summary = "用户注册", description = "根据租户创建一个新的普通用户账号")
+    public R<RegisterResponse> register(@Valid @RequestBody RegisterRequest request) {
+        return R.ok(authAccountService.register(request));
     }
 }

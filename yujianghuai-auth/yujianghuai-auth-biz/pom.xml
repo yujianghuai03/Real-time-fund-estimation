@@ -18,10 +18,7 @@
             <groupId>com.yujianghuai</groupId>
             <artifactId>yujianghuai-auth-api</artifactId>
         </dependency>
-        <dependency>
-            <groupId>com.yujianghuai</groupId>
-            <artifactId>yujianghuai-common-core</artifactId>
-        </dependency>
+
         <dependency>
             <groupId>com.yujianghuai</groupId>
             <artifactId>yujianghuai-common-web</artifactId>

@@ -53,6 +53,7 @@ public class AuthAccountService {
             user.setPassword(passwordEncoder.encode(request.getPassword()));
             user.setUserType(1);
             user.setStatus(1);
+            user.setEmail(request.getEmail());
             userMapper.insert(user);
 
             SysRole defaultRole = resolveDefaultRole(tenant.getId());
