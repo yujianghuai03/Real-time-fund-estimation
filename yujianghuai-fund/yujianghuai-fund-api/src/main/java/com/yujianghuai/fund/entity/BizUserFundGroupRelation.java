@@ -2,18 +2,19 @@ package com.yujianghuai.fund.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.yujianghuai.common.entity.BaseEntity;
 import com.yujianghuai.common.tenant.TenantTable;
 import io.swagger.v3.oas.annotations.media.Schema;
-import java.time.LocalDateTime;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Data
+@EqualsAndHashCode(callSuper = true)
 @TenantTable
 @Schema(description = "用户基金分组关系表")
 @TableName("biz_user_fund_group_relation")
-public class BizUserFundGroupRelation {
+public class BizUserFundGroupRelation extends BaseEntity {
 
     @Schema(description = "关系ID")
     @TableId(type = IdType.ASSIGN_ID)
@@ -36,21 +37,5 @@ public class BizUserFundGroupRelation {
 
     @Schema(description = "组内排序")
     private Integer sortOrder;
-
-    @Schema(description = "创建人")
-    private String createBy;
-
-    @Schema(description = "修改人")
-    private String updateBy;
-
-    @Schema(description = "创建时间")
-    private LocalDateTime createTime;
-
-    @Schema(description = "更新时间")
-    private LocalDateTime updateTime;
-
-    @Schema(description = "删除标记，0未删除，1已删除")
-    @TableLogic
-    private String delFlag;
 
 }

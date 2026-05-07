@@ -2,20 +2,21 @@ package com.yujianghuai.fund.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.yujianghuai.common.entity.BaseEntity;
 import com.yujianghuai.common.tenant.TenantTable;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Data
+@EqualsAndHashCode(callSuper = true)
 @TenantTable
 @Schema(description = "基金分红记录表")
 @TableName("biz_fund_dividend")
-public class BizFundDividend {
+public class BizFundDividend extends BaseEntity {
 
     @Schema(description = "分红ID")
     @TableId(type = IdType.ASSIGN_ID)
@@ -47,21 +48,5 @@ public class BizFundDividend {
 
     @Schema(description = "备注")
     private String remark;
-
-    @Schema(description = "创建人")
-    private String createBy;
-
-    @Schema(description = "修改人")
-    private String updateBy;
-
-    @Schema(description = "创建时间")
-    private LocalDateTime createTime;
-
-    @Schema(description = "更新时间")
-    private LocalDateTime updateTime;
-
-    @Schema(description = "删除标记，0未删除，1已删除")
-    @TableLogic
-    private String delFlag;
 
 }

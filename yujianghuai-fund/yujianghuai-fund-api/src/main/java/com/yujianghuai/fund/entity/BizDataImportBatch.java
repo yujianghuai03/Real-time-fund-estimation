@@ -2,18 +2,20 @@ package com.yujianghuai.fund.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.yujianghuai.common.entity.BaseEntity;
 import com.yujianghuai.common.tenant.TenantTable;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Data
+@EqualsAndHashCode(callSuper = true)
 @TenantTable
 @Schema(description = "业务数据导入批次表")
 @TableName("biz_data_import_batch")
-public class BizDataImportBatch {
+public class BizDataImportBatch extends BaseEntity {
 
     @Schema(description = "导入批次ID")
     @TableId(type = IdType.ASSIGN_ID)
@@ -54,21 +56,5 @@ public class BizDataImportBatch {
 
     @Schema(description = "完成时间")
     private LocalDateTime finishTime;
-
-    @Schema(description = "创建人")
-    private String createBy;
-
-    @Schema(description = "修改人")
-    private String updateBy;
-
-    @Schema(description = "创建时间")
-    private LocalDateTime createTime;
-
-    @Schema(description = "更新时间")
-    private LocalDateTime updateTime;
-
-    @Schema(description = "删除标记，0未删除，1已删除")
-    @TableLogic
-    private String delFlag;
 
 }

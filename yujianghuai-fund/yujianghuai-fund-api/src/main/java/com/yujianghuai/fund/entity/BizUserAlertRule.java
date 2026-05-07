@@ -2,19 +2,21 @@ package com.yujianghuai.fund.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.yujianghuai.common.entity.BaseEntity;
 import com.yujianghuai.common.tenant.TenantTable;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Data
+@EqualsAndHashCode(callSuper = true)
 @TenantTable
 @Schema(description = "用户提醒规则表")
 @TableName("biz_user_alert_rule")
-public class BizUserAlertRule {
+public class BizUserAlertRule extends BaseEntity {
 
     @Schema(description = "提醒规则ID")
     @TableId(type = IdType.ASSIGN_ID)
@@ -52,21 +54,5 @@ public class BizUserAlertRule {
 
     @Schema(description = "备注")
     private String remark;
-
-    @Schema(description = "创建人")
-    private String createBy;
-
-    @Schema(description = "修改人")
-    private String updateBy;
-
-    @Schema(description = "创建时间")
-    private LocalDateTime createTime;
-
-    @Schema(description = "更新时间")
-    private LocalDateTime updateTime;
-
-    @Schema(description = "删除标记，0未删除，1已删除")
-    @TableLogic
-    private String delFlag;
 
 }
