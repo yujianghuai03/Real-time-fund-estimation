@@ -21,6 +21,7 @@
         <module>yujianghuai-common-feign</module>
         <module>yujianghuai-common-mq</module>
         <module>yujianghuai-common-data</module>
+        <module>yujianghuai-common-email</module>
         <module>yujianghuai-common-mybatis</module>
     </modules>
 </project>

@@ -20,6 +20,10 @@
         </dependency>
         <dependency>
             <groupId>com.yujianghuai</groupId>
+            <artifactId>yujianghuai-common-email</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.yujianghuai</groupId>
             <artifactId>yujianghuai-fund-biz</artifactId>
         </dependency>
         <dependency>

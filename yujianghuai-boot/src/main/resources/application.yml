@@ -51,6 +51,16 @@ auth:
     refresh-token-ttl: 7d
 
 app:
+  email:
+    host: ${APP_EMAIL_HOST:smtp.qq.com}
+    port: ${APP_EMAIL_PORT:465}
+    username: ${APP_EMAIL_USERNAME:}
+    password: ${APP_EMAIL_PASSWORD:}
+    from-name: ${APP_EMAIL_FROM_NAME:Yujianghuai}
+    verification-subject: ${APP_EMAIL_VERIFICATION_SUBJECT:邮箱验证码}
+    ssl-enable: ${APP_EMAIL_SSL_ENABLE:true}
+    auth: ${APP_EMAIL_AUTH:true}
+    template-path: email/email.ftl
   tenant:
     header-name: TENANT-ID
     ignore-paths:

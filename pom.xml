@@ -74,6 +74,11 @@
             </dependency>
             <dependency>
                 <groupId>com.yujianghuai</groupId>
+                <artifactId>yujianghuai-common-email</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.yujianghuai</groupId>
                 <artifactId>yujianghuai-common-mybatis</artifactId>
                 <version>${project.version}</version>
             </dependency>
