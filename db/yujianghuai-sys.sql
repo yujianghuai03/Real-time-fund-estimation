@@ -468,7 +468,7 @@ INSERT INTO `sys_oauth_client` (
     '$2a$10$Dqqst3cDtdYyTt2ae6VjVeXNUG3gMcE2Y5eN5EjAh4S9NINZeR9Pa',
     '默认客户端',
     'client_secret_basic,client_secret_post',
-    'authorization_code,refresh_token,client_credentials,password',
+    'authorization_code,refresh_token,client_credentials,password,email_code',
     'http://127.0.0.1:8080/login/oauth2/code/yujianghuai',
     'openid,profile,api.read,api.write',
     7200,

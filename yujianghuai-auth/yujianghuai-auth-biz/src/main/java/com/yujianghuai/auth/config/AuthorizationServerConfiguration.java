@@ -7,6 +7,9 @@ import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
 import com.yujianghuai.auth.service.AuthUserDetailsService;
 import com.yujianghuai.auth.support.core.AuthTokenCustomizer;
+import com.yujianghuai.auth.support.email.EmailCodeAuthenticationService;
+import com.yujianghuai.auth.support.email.OAuth2ResourceOwnerEmailAuthenticationConverter;
+import com.yujianghuai.auth.support.email.OAuth2ResourceOwnerEmailAuthenticationProvider;
 import com.yujianghuai.auth.support.handler.AuthFailureHandler;
 import com.yujianghuai.auth.support.handler.AuthSuccessHandler;
 import com.yujianghuai.auth.support.password.OAuth2ResourceOwnerPasswordAuthenticationConverter;
@@ -83,6 +86,8 @@ public class AuthorizationServerConfiguration {
             OAuth2TokenGenerator<?> tokenGenerator,
             AuthSuccessHandler successHandler,
             AuthFailureHandler failureHandler,
+            AuthUserDetailsService authUserDetailsService,
+            EmailCodeAuthenticationService emailCodeAuthenticationService,
             JwtAuthenticationConverter jwtAuthenticationConverter) throws Exception {
 
         OAuth2AuthorizationServerConfiguration.applyDefaultSecurity(http);
@@ -100,7 +105,8 @@ public class AuthorizationServerConfiguration {
                 .authorizationServerSettings(authorizationServerSettings)
                 .oidc(Customizer.withDefaults());
 
-        addCustomOAuth2GrantAuthenticationProvider(http, authenticationConfiguration, authorizationService, tokenGenerator);
+        addCustomOAuth2GrantAuthenticationProvider(http, authenticationConfiguration, authorizationService,
+                tokenGenerator, authUserDetailsService, emailCodeAuthenticationService);
 
         http.csrf(AbstractHttpConfigurer::disable)
                 .exceptionHandling(exceptions -> exceptions.defaultAuthenticationEntryPointFor(
@@ -179,6 +185,7 @@ public class AuthorizationServerConfiguration {
     public AuthenticationConverter accessTokenRequestConverter() {
         return new DelegatingAuthenticationConverter(Arrays.asList(
                 new OAuth2ResourceOwnerPasswordAuthenticationConverter(),
+                new OAuth2ResourceOwnerEmailAuthenticationConverter(),
                 new org.springframework.security.oauth2.server.authorization.web.authentication.OAuth2RefreshTokenAuthenticationConverter(),
                 new org.springframework.security.oauth2.server.authorization.web.authentication.OAuth2ClientCredentialsAuthenticationConverter(),
                 new org.springframework.security.oauth2.server.authorization.web.authentication.OAuth2AuthorizationCodeAuthenticationConverter(),
@@ -198,6 +205,7 @@ public class AuthorizationServerConfiguration {
                 .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
                 .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
                 .authorizationGrantType(AuthorizationGrantType.PASSWORD)
+                .authorizationGrantType(OAuth2ResourceOwnerEmailAuthenticationProvider.EMAIL_CODE)
                 .clientSettings(ClientSettings.builder().requireAuthorizationConsent(false).build())
                 .tokenSettings(TokenSettings.builder()
                         .accessTokenTimeToLive(oauth2.getAccessTokenTtl())
@@ -269,10 +277,15 @@ public class AuthorizationServerConfiguration {
             HttpSecurity http,
             AuthenticationConfiguration authenticationConfiguration,
             OAuth2AuthorizationService authorizationService,
-            OAuth2TokenGenerator<?> tokenGenerator) throws Exception {
+            OAuth2TokenGenerator<?> tokenGenerator,
+            AuthUserDetailsService authUserDetailsService,
+            EmailCodeAuthenticationService emailCodeAuthenticationService) throws Exception {
         AuthenticationManager authenticationManager = authenticationConfiguration.getAuthenticationManager();
         http.authenticationProvider(new OAuth2ResourceOwnerPasswordAuthenticationProvider(
                 authenticationManager, authorizationService, tokenGenerator));
+        http.authenticationProvider(new OAuth2ResourceOwnerEmailAuthenticationProvider(
+                authenticationManager, authorizationService, tokenGenerator,
+                authUserDetailsService, emailCodeAuthenticationService));
     }
 
     private RSAKey generateRsa() {

@@ -62,7 +62,7 @@ public abstract class OAuth2ResourceOwnerBaseAuthenticationProvider<T extends OA
         Set<String> authorizedScopes = resolveAuthorizedScopes(resourceOwnerAuthentication, registeredClient);
 
         try {
-            Authentication userAuthentication = authenticationManager.authenticate(buildToken(resourceOwnerAuthentication));
+            Authentication userAuthentication = authenticateUser(resourceOwnerAuthentication);
             return generateAuthenticationToken(resourceOwnerAuthentication, clientPrincipal, registeredClient,
                     authorizedScopes, userAuthentication);
         } catch (OAuth2AuthenticationException exception) {
@@ -72,6 +72,10 @@ public abstract class OAuth2ResourceOwnerBaseAuthenticationProvider<T extends OA
                     exception.getMessage(), ERROR_URI);
             throw new OAuth2AuthenticationException(error, exception);
         }
+    }
+
+    protected Authentication authenticateUser(T authentication) {
+        return authenticationManager.authenticate(buildToken(authentication));
     }
 
     private Set<String> resolveAuthorizedScopes(T authentication, RegisteredClient registeredClient) {

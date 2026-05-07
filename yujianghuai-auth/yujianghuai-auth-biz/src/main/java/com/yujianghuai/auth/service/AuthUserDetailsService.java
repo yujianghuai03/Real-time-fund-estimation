@@ -7,6 +7,7 @@ import com.yujianghuai.admin.mapper.SysUserMapper;
 import com.yujianghuai.common.tenant.TenantContext;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
@@ -33,14 +34,25 @@ public class AuthUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        return loadUser(() -> userMapper.selectOne(new LambdaQueryWrapper<SysUser>()
+                .eq(SysUser::getUsername, username)
+                .eq(SysUser::getStatus, 1)
+                .last("limit 1")), username, true);
+    }
+
+    public UserDetails loadUserByEmail(String email) throws UsernameNotFoundException {
+        return loadUser(() -> userMapper.selectOne(new LambdaQueryWrapper<SysUser>()
+                .eq(SysUser::getEmail, email)
+                .eq(SysUser::getStatus, 1)
+                .last("limit 1")), email, false);
+    }
+
+    private UserDetails loadUser(Supplier<SysUser> userSupplier, String identifier, boolean requirePassword) {
         var tenant = authTenantService.resolveTenantByIdentifier(TenantContext.getTenantId());
         return authTenantService.runWithTenantContext(tenant.getId(), () -> {
-            SysUser user = userMapper.selectOne(new LambdaQueryWrapper<SysUser>()
-                    .eq(SysUser::getUsername, username)
-                    .eq(SysUser::getStatus, 1)
-                    .last("limit 1"));
-            if (user == null || !StringUtils.hasText(user.getPassword())) {
-                throw new UsernameNotFoundException("User not found: " + username);
+            SysUser user = userSupplier.get();
+            if (user == null || (requirePassword && !StringUtils.hasText(user.getPassword()))) {
+                throw new UsernameNotFoundException("User not found: " + identifier);
             }
             List<String> roles = relationMapper.selectRoleCodesByUserId(tenant.getId(), user.getId());
             if (roles == null || roles.isEmpty()) {
@@ -60,7 +72,7 @@ public class AuthUserDetailsService implements UserDetailsService {
                         .forEach(authorities::add);
             }
             return User.withUsername(user.getUsername())
-                    .password(user.getPassword())
+                    .password(StringUtils.hasText(user.getPassword()) ? user.getPassword() : "")
                     .authorities(authorities)
                     .disabled(user.getStatus() == null || user.getStatus() != 1)
                     .build();
