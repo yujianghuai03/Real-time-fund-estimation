@@ -18,7 +18,7 @@
 业务库脚本：
 
 ```text
-db/yujianghuai.sql
+db/yujianghuai-sys.sql
 ```
 
 脚本会创建 `yujianghuai` 数据库，并初始化 RBAC 权限模型、租户、部门、岗位、用户、角色、菜单、按钮、API 权限、OAuth2 客户端、字典、系统参数、登录日志、操作日志和演示业务表。
@@ -26,7 +26,7 @@ db/yujianghuai.sql
 本地导入：
 
 ```powershell
-mysql --default-character-set=utf8mb4 -uroot -p123456 -e "source F:/yujianghuai/yujianghuai/db/yujianghuai.sql"
+mysql --default-character-set=utf8mb4 -uroot -p123456 -e "source F:/yujianghuai/yujianghuai/db/yujianghuai-sys.sql"
 ```
 
 默认账号：

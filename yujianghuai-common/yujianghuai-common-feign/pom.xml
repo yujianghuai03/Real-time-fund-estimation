@@ -12,11 +12,27 @@
 
     <artifactId>yujianghuai-common-feign</artifactId>
     <name>yujianghuai-common-feign</name>
-
+    <description>feign 通用组件</description>
     <dependencies>
         <dependency>
             <groupId>com.yujianghuai</groupId>
             <artifactId>yujianghuai-common-core</artifactId>
+        </dependency>
+
+        <!--feign 依赖-->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-openfeign</artifactId>
+        </dependency>
+        <!-- okhttp 扩展 -->
+        <dependency>
+            <groupId>io.github.openfeign</groupId>
+            <artifactId>feign-okhttp</artifactId>
+        </dependency>
+        <!-- LB 扩展 -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-loadbalancer</artifactId>
         </dependency>
     </dependencies>
 </project>

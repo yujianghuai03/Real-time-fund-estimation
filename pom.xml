@@ -19,7 +19,7 @@
 
     <modules>
         <module>yujianghuai-common</module>
-        <module>yujianghuai-service</module>
+        <module>yujianghuai-fund</module>
         <module>yujianghuai-auth</module>
         <module>yujianghuai-admin</module>
     </modules>
@@ -79,17 +79,17 @@
             </dependency>
             <dependency>
                 <groupId>com.yujianghuai</groupId>
-                <artifactId>yujianghuai-service</artifactId>
+                <artifactId>yujianghuai-fund</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.yujianghuai</groupId>
-                <artifactId>yujianghuai-service-api</artifactId>
+                <artifactId>yujianghuai-fund-api</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.yujianghuai</groupId>
-                <artifactId>yujianghuai-service-biz</artifactId>
+                <artifactId>yujianghuai-fund-biz</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

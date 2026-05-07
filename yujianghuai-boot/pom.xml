@@ -20,7 +20,7 @@
         </dependency>
         <dependency>
             <groupId>com.yujianghuai</groupId>
-            <artifactId>yujianghuai-service-biz</artifactId>
+            <artifactId>yujianghuai-fund-biz</artifactId>
         </dependency>
         <dependency>
             <groupId>com.yujianghuai</groupId>

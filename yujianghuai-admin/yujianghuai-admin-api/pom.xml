@@ -35,5 +35,10 @@
             <artifactId>lombok</artifactId>
             <optional>true</optional>
         </dependency>
+        <!--feign 工具类-->
+        <dependency>
+            <groupId>com.yujianghuai</groupId>
+            <artifactId>yujianghuai-common-feign</artifactId>
+        </dependency>
     </dependencies>
 </project>

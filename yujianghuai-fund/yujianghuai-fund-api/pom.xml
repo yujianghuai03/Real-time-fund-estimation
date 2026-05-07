@@ -5,22 +5,38 @@
 
     <parent>
         <groupId>com.yujianghuai</groupId>
-        <artifactId>yujianghuai-common</artifactId>
+        <artifactId>yujianghuai-fund</artifactId>
         <version>1.0.0</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>yujianghuai-common-core</artifactId>
-    <name>yujianghuai-common-core</name>
+    <artifactId>yujianghuai-fund-api</artifactId>
+    <name>yujianghuai-fund-api</name>
 
     <dependencies>
+        <dependency>
+            <groupId>com.yujianghuai</groupId>
+            <artifactId>yujianghuai-common-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.yujianghuai</groupId>
+            <artifactId>yujianghuai-common-tenant</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.yujianghuai</groupId>
+            <artifactId>yujianghuai-common-mq</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.yujianghuai</groupId>
+            <artifactId>yujianghuai-common-data</artifactId>
+        </dependency>
         <dependency>
             <groupId>com.baomidou</groupId>
             <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.swagger.core.v3</groupId>
-            <artifactId>swagger-annotations-jakarta</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
