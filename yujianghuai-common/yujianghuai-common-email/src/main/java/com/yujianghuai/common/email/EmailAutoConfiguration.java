@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
 
@@ -54,7 +55,8 @@ public class EmailAutoConfiguration {
 
     @Bean
     public EmailService emailService(JavaMailSender javaMailSender,
+                                     StringRedisTemplate stringRedisTemplate,
                                      freemarker.template.Configuration emailFreemarkerConfiguration) {
-        return new EmailServiceImpl(javaMailSender, emailFreemarkerConfiguration, emailProperties);
+        return new EmailServiceImpl(javaMailSender, stringRedisTemplate, emailFreemarkerConfiguration, emailProperties);
     }
 }

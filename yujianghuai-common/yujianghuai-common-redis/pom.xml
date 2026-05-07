@@ -10,8 +10,8 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>yujianghuai-common-data</artifactId>
-    <name>yujianghuai-common-data</name>
+    <artifactId>yujianghuai-common-redis</artifactId>
+    <name>yujianghuai-common-redis</name>
 
     <dependencies>
         <dependency>

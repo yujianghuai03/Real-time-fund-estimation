@@ -7,12 +7,14 @@ import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.yujianghuai.common.constant.EmailConstants;
 import com.yujianghuai.common.exception.BusinessException;
 import com.yujianghuai.common.exception.ErrorCode;
 import freemarker.template.Template;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.util.StringUtils;
@@ -27,6 +29,7 @@ class EmailServiceImpl implements EmailService {
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private final JavaMailSender javaMailSender;
+    private final StringRedisTemplate stringRedisTemplate;
     private final freemarker.template.Configuration freemarkerConfiguration;
     private final EmailProperties emailProperties;
 
@@ -46,11 +49,17 @@ class EmailServiceImpl implements EmailService {
             helper.setSubject(emailProperties.getVerificationSubject());
             helper.setText(html, true);
             javaMailSender.send(message);
+            cacheVerificationCode(targetEmail, code);
             log.info("验证码邮件发送成功，targetEmail={}", targetEmail);
         } catch (Exception ex) {
             log.error("验证码邮件发送失败，targetEmail={}", targetEmail, ex);
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "验证码邮件发送失败，请稍后重试");
         }
+    }
+
+    private void cacheVerificationCode(String targetEmail, String code) {
+        String redisKey = EmailConstants.verificationCodeKey(targetEmail);
+        stringRedisTemplate.opsForValue().set(redisKey, code, EmailConstants.VERIFICATION_CODE_TTL);
     }
 
     private String renderVerificationTemplate(String targetEmail, String code) throws Exception {
@@ -60,7 +69,7 @@ class EmailServiceImpl implements EmailService {
         model.put("time", LocalDateTime.now().format(TIME_FORMATTER));
         model.put("email", targetEmail);
         model.put("code", code);
-        model.put("content", "您的验证码为：" + code + "，请在有效期内完成验证。若非本人操作，请忽略此邮件。");
+        model.put("content", "您的验证码为：" + code + "，有效期为10分钟。若非本人操作，请忽略此邮件。");
         model.put("year", Year.now().getValue());
 
         StringWriter writer = new StringWriter();

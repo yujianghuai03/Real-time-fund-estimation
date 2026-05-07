@@ -28,7 +28,7 @@
         </dependency>
         <dependency>
             <groupId>com.yujianghuai</groupId>
-            <artifactId>yujianghuai-common-data</artifactId>
+            <artifactId>yujianghuai-common-redis</artifactId>
         </dependency>
         <dependency>
             <groupId>com.baomidou</groupId>
