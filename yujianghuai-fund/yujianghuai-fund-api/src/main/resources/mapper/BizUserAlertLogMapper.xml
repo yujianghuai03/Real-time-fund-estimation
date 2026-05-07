@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yujianghuai.fund.mapper.BizUserAlertLogMapper">
+
+    <resultMap id="BaseResultMap" type="com.yujianghuai.fund.entity.BizUserAlertLog">
+        <id column="id" property="id" />
+        <result column="tenant_id" property="tenantId" />
+        <result column="user_id" property="userId" />
+        <result column="rule_id" property="ruleId" />
+        <result column="fund_id" property="fundId" />
+        <result column="alert_title" property="alertTitle" />
+        <result column="alert_content" property="alertContent" />
+        <result column="trigger_value" property="triggerValue" />
+        <result column="notify_channel" property="notifyChannel" />
+        <result column="notify_status" property="notifyStatus" />
+        <result column="trigger_time" property="triggerTime" />
+        <result column="read_time" property="readTime" />
+        <result column="failure_reason" property="failureReason" />
+        <result column="create_by" property="createBy" />
+        <result column="update_by" property="updateBy" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+        <result column="del_flag" property="delFlag" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        `id`, `tenant_id`, `user_id`, `rule_id`, `fund_id`, `alert_title`, `alert_content`, `trigger_value`, `notify_channel`, `notify_status`, `trigger_time`, `read_time`, `failure_reason`, `create_by`, `update_by`, `create_time`, `update_time`, `del_flag`
+    </sql>
+
+</mapper>

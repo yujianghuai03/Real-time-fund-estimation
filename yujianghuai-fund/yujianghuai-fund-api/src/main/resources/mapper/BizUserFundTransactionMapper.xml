@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yujianghuai.fund.mapper.BizUserFundTransactionMapper">
+
+    <resultMap id="BaseResultMap" type="com.yujianghuai.fund.entity.BizUserFundTransaction">
+        <id column="id" property="id" />
+        <result column="tenant_id" property="tenantId" />
+        <result column="user_id" property="userId" />
+        <result column="portfolio_id" property="portfolioId" />
+        <result column="holding_id" property="holdingId" />
+        <result column="fund_id" property="fundId" />
+        <result column="fund_code" property="fundCode" />
+        <result column="fund_name" property="fundName" />
+        <result column="trade_type" property="tradeType" />
+        <result column="trade_status" property="tradeStatus" />
+        <result column="trade_time" property="tradeTime" />
+        <result column="confirm_date" property="confirmDate" />
+        <result column="amount" property="amount" />
+        <result column="fee" property="fee" />
+        <result column="confirm_nav" property="confirmNav" />
+        <result column="confirm_shares" property="confirmShares" />
+        <result column="before_shares" property="beforeShares" />
+        <result column="after_shares" property="afterShares" />
+        <result column="before_amount" property="beforeAmount" />
+        <result column="after_amount" property="afterAmount" />
+        <result column="target_fund_id" property="targetFundId" />
+        <result column="target_fund_code" property="targetFundCode" />
+        <result column="target_fund_name" property="targetFundName" />
+        <result column="source_channel" property="sourceChannel" />
+        <result column="external_trade_no" property="externalTradeNo" />
+        <result column="remark" property="remark" />
+        <result column="create_by" property="createBy" />
+        <result column="update_by" property="updateBy" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+        <result column="del_flag" property="delFlag" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        `id`, `tenant_id`, `user_id`, `portfolio_id`, `holding_id`, `fund_id`, `fund_code`, `fund_name`, `trade_type`, `trade_status`, `trade_time`, `confirm_date`, `amount`, `fee`, `confirm_nav`, `confirm_shares`, `before_shares`, `after_shares`, `before_amount`, `after_amount`, `target_fund_id`, `target_fund_code`, `target_fund_name`, `source_channel`, `external_trade_no`, `remark`, `create_by`, `update_by`, `create_time`, `update_time`, `del_flag`
+    </sql>
+
+</mapper>

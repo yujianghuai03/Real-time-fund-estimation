@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yujianghuai.fund.mapper.BizUserFundSipPlanMapper">
+
+    <resultMap id="BaseResultMap" type="com.yujianghuai.fund.entity.BizUserFundSipPlan">
+        <id column="id" property="id" />
+        <result column="tenant_id" property="tenantId" />
+        <result column="user_id" property="userId" />
+        <result column="portfolio_id" property="portfolioId" />
+        <result column="fund_id" property="fundId" />
+        <result column="fund_code" property="fundCode" />
+        <result column="fund_name" property="fundName" />
+        <result column="plan_name" property="planName" />
+        <result column="amount" property="amount" />
+        <result column="frequency" property="frequency" />
+        <result column="execute_day" property="executeDay" />
+        <result column="start_date" property="startDate" />
+        <result column="end_date" property="endDate" />
+        <result column="next_execute_date" property="nextExecuteDate" />
+        <result column="last_execute_date" property="lastExecuteDate" />
+        <result column="status" property="status" />
+        <result column="remark" property="remark" />
+        <result column="create_by" property="createBy" />
+        <result column="update_by" property="updateBy" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+        <result column="del_flag" property="delFlag" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        `id`, `tenant_id`, `user_id`, `portfolio_id`, `fund_id`, `fund_code`, `fund_name`, `plan_name`, `amount`, `frequency`, `execute_day`, `start_date`, `end_date`, `next_execute_date`, `last_execute_date`, `status`, `remark`, `create_by`, `update_by`, `create_time`, `update_time`, `del_flag`
+    </sql>
+
+</mapper>

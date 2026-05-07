@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yujianghuai.fund.mapper.BizFundTagMapper">
+
+    <resultMap id="BaseResultMap" type="com.yujianghuai.fund.entity.BizFundTag">
+        <id column="id" property="id" />
+        <result column="tenant_id" property="tenantId" />
+        <result column="tag_name" property="tagName" />
+        <result column="tag_type" property="tagType" />
+        <result column="tag_color" property="tagColor" />
+        <result column="sort_order" property="sortOrder" />
+        <result column="status" property="status" />
+        <result column="create_by" property="createBy" />
+        <result column="update_by" property="updateBy" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+        <result column="del_flag" property="delFlag" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        `id`, `tenant_id`, `tag_name`, `tag_type`, `tag_color`, `sort_order`, `status`, `create_by`, `update_by`, `create_time`, `update_time`, `del_flag`
+    </sql>
+
+</mapper>

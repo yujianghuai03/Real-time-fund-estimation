@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yujianghuai.fund.mapper.BizFundDividendMapper">
+
+    <resultMap id="BaseResultMap" type="com.yujianghuai.fund.entity.BizFundDividend">
+        <id column="id" property="id" />
+        <result column="tenant_id" property="tenantId" />
+        <result column="fund_id" property="fundId" />
+        <result column="fund_code" property="fundCode" />
+        <result column="record_date" property="recordDate" />
+        <result column="ex_dividend_date" property="exDividendDate" />
+        <result column="payment_date" property="paymentDate" />
+        <result column="dividend_per_share" property="dividendPerShare" />
+        <result column="dividend_type" property="dividendType" />
+        <result column="remark" property="remark" />
+        <result column="create_by" property="createBy" />
+        <result column="update_by" property="updateBy" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+        <result column="del_flag" property="delFlag" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        `id`, `tenant_id`, `fund_id`, `fund_code`, `record_date`, `ex_dividend_date`, `payment_date`, `dividend_per_share`, `dividend_type`, `remark`, `create_by`, `update_by`, `create_time`, `update_time`, `del_flag`
+    </sql>
+
+</mapper>

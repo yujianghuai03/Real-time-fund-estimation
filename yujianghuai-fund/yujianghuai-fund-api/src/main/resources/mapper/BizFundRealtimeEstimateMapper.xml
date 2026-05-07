@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yujianghuai.fund.mapper.BizFundRealtimeEstimateMapper">
+
+    <resultMap id="BaseResultMap" type="com.yujianghuai.fund.entity.BizFundRealtimeEstimate">
+        <id column="id" property="id" />
+        <result column="tenant_id" property="tenantId" />
+        <result column="fund_id" property="fundId" />
+        <result column="fund_code" property="fundCode" />
+        <result column="estimate_time" property="estimateTime" />
+        <result column="estimate_nav" property="estimateNav" />
+        <result column="estimate_growth_rate" property="estimateGrowthRate" />
+        <result column="estimate_amount" property="estimateAmount" />
+        <result column="previous_nav" property="previousNav" />
+        <result column="market_status" property="marketStatus" />
+        <result column="source" property="source" />
+        <result column="source_update_time" property="sourceUpdateTime" />
+        <result column="abnormal_flag" property="abnormalFlag" />
+        <result column="abnormal_reason" property="abnormalReason" />
+        <result column="create_by" property="createBy" />
+        <result column="update_by" property="updateBy" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+        <result column="del_flag" property="delFlag" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        `id`, `tenant_id`, `fund_id`, `fund_code`, `estimate_time`, `estimate_nav`, `estimate_growth_rate`, `estimate_amount`, `previous_nav`, `market_status`, `source`, `source_update_time`, `abnormal_flag`, `abnormal_reason`, `create_by`, `update_by`, `create_time`, `update_time`, `del_flag`
+    </sql>
+
+</mapper>

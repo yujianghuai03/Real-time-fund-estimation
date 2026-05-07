@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yujianghuai.fund.mapper.BizUserAlertRuleMapper">
+
+    <resultMap id="BaseResultMap" type="com.yujianghuai.fund.entity.BizUserAlertRule">
+        <id column="id" property="id" />
+        <result column="tenant_id" property="tenantId" />
+        <result column="user_id" property="userId" />
+        <result column="fund_id" property="fundId" />
+        <result column="rule_name" property="ruleName" />
+        <result column="rule_type" property="ruleType" />
+        <result column="compare_operator" property="compareOperator" />
+        <result column="threshold_value" property="thresholdValue" />
+        <result column="notify_channels" property="notifyChannels" />
+        <result column="last_trigger_time" property="lastTriggerTime" />
+        <result column="status" property="status" />
+        <result column="remark" property="remark" />
+        <result column="create_by" property="createBy" />
+        <result column="update_by" property="updateBy" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+        <result column="del_flag" property="delFlag" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        `id`, `tenant_id`, `user_id`, `fund_id`, `rule_name`, `rule_type`, `compare_operator`, `threshold_value`, `notify_channels`, `last_trigger_time`, `status`, `remark`, `create_by`, `update_by`, `create_time`, `update_time`, `del_flag`
+    </sql>
+
+</mapper>
