@@ -20,7 +20,7 @@
         </dependency>
         <dependency>
             <groupId>com.yujianghuai</groupId>
-            <artifactId>yujianghuai-admin-api</artifactId>
+            <artifactId>yujianghuai-admin</artifactId>
         </dependency>
         <dependency>
             <groupId>com.yujianghuai</groupId>
