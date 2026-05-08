@@ -1,0 +1,248 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-05-08T12:00:00+08:00",
+  "title": "Design System: 基金智估",
+  "extensions": {
+    "colorMeta": {
+      "primary-radar-cyan": {
+        "role": "primary",
+        "displayName": "雷达青",
+        "canonical": "#00c2ff",
+        "tonalRamp": [
+          "oklch(15% 0.12 225)",
+          "oklch(26% 0.14 225)",
+          "oklch(38% 0.15 225)",
+          "oklch(50% 0.16 225)",
+          "oklch(62% 0.15 225)",
+          "oklch(74% 0.12 225)",
+          "oklch(86% 0.08 225)",
+          "oklch(95% 0.04 225)"
+        ]
+      },
+      "deep-market-bg": {
+        "role": "neutral",
+        "displayName": "深盘蓝底",
+        "canonical": "#081221",
+        "tonalRamp": [
+          "oklch(15% 0.03 250)",
+          "oklch(24% 0.03 250)",
+          "oklch(34% 0.025 250)",
+          "oklch(46% 0.02 250)",
+          "oklch(58% 0.018 250)",
+          "oklch(70% 0.014 250)",
+          "oklch(84% 0.01 250)",
+          "oklch(95% 0.006 250)"
+        ]
+      },
+      "light-surface": {
+        "role": "neutral",
+        "displayName": "清晨浅面",
+        "canonical": "#f5f7fb",
+        "tonalRamp": [
+          "oklch(15% 0.015 250)",
+          "oklch(26% 0.015 250)",
+          "oklch(38% 0.012 250)",
+          "oklch(50% 0.01 250)",
+          "oklch(62% 0.009 250)",
+          "oklch(74% 0.008 250)",
+          "oklch(86% 0.007 250)",
+          "oklch(95% 0.006 250)"
+        ]
+      },
+      "danger-red": {
+        "role": "semantic",
+        "displayName": "危险红",
+        "canonical": "#ff4d4f",
+        "tonalRamp": [
+          "oklch(15% 0.08 25)",
+          "oklch(26% 0.1 25)",
+          "oklch(38% 0.12 25)",
+          "oklch(50% 0.14 25)",
+          "oklch(62% 0.13 25)",
+          "oklch(74% 0.1 25)",
+          "oklch(86% 0.07 25)",
+          "oklch(95% 0.035 25)"
+        ]
+      },
+      "success-green": {
+        "role": "semantic",
+        "displayName": "收益绿",
+        "canonical": "#00a870",
+        "tonalRamp": [
+          "oklch(15% 0.08 160)",
+          "oklch(26% 0.1 160)",
+          "oklch(38% 0.12 160)",
+          "oklch(50% 0.13 160)",
+          "oklch(62% 0.12 160)",
+          "oklch(74% 0.09 160)",
+          "oklch(86% 0.06 160)",
+          "oklch(95% 0.03 160)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "页面主标题，保持产品工具的克制比例。"
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "登录弹层、关键弹窗标题和高优先级区块。"
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "控件、说明、表格和日常信息。"
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "状态标签、辅助说明和紧凑提示。"
+      }
+    },
+    "shadows": [
+      {
+        "name": "soft-header",
+        "value": "0 2px 12px var(--shadow-color)",
+        "purpose": "粘性头部的常驻轻阴影。"
+      },
+      {
+        "name": "ambient-card",
+        "value": "0 18px 42px rgba(0, 0, 0, 0.2)",
+        "purpose": "卡片、侧栏、弹窗和下拉菜单。"
+      },
+      {
+        "name": "accent-lift",
+        "value": "0 10px 20px rgba(var(--primary-color-rgb), 0.24)",
+        "purpose": "主按钮和提交按钮。"
+      },
+      {
+        "name": "focus-ring",
+        "value": "0 0 0 4px var(--focus-ring)",
+        "purpose": "键盘焦点和输入焦点。"
+      }
+    ],
+    "motion": [
+      {
+        "name": "state-fast",
+        "value": "160ms ease",
+        "purpose": "按钮、菜单项、输入状态变化。"
+      },
+      {
+        "name": "panel-enter",
+        "value": "180ms ease",
+        "purpose": "弹窗、下拉和轻量浮层出现消失。"
+      },
+      {
+        "name": "theme-transition",
+        "value": "300ms ease",
+        "purpose": "主题切换时的颜色、背景、边框和阴影过渡。"
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "mobile-compact",
+        "value": "560px"
+      },
+      {
+        "name": "mobile",
+        "value": "640px"
+      },
+      {
+        "name": "header-stack",
+        "value": "920px"
+      },
+      {
+        "name": "layout-stack",
+        "value": "960px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "用于刷新、提交、选择图片等明确主命令。",
+      "html": "<button class=\"ds-button-primary\">刷新估值</button>",
+      "css": ".ds-button-primary { height: 44px; padding: 0 16px; border: 0; border-radius: 13px; color: #05111f; background: var(--primary-color, #00c2ff); box-shadow: 0 12px 24px rgba(0, 194, 255, 0.24); cursor: pointer; font: 800 15px Inter, 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif; letter-spacing: 0; transition: filter 160ms ease, transform 160ms ease; } .ds-button-primary:hover { filter: brightness(1.05); transform: translateY(-1px); } .ds-button-primary:focus-visible { outline: 0; box-shadow: 0 0 0 4px var(--focus-ring, rgba(0, 194, 255, 0.14)), 0 12px 24px rgba(0, 194, 255, 0.24); }"
+    },
+    {
+      "name": "Ghost Icon Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "用于头部快捷操作、主题切换和次要图标命令。",
+      "html": "<button class=\"ds-icon-button\" aria-label=\"刷新\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M20 11a8 8 0 1 1-2.34-5.66L20 8\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><path d=\"M20 4v4h-4\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></button>",
+      "css": ".ds-icon-button { display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; border: 1px solid var(--border-color-strong, rgba(255, 255, 255, 0.14)); border-radius: 13px; color: var(--text-color, #f6f9ff); background: var(--button-bg, rgba(255, 255, 255, 0.07)); box-shadow: inset 0 1px 0 rgba(246, 249, 255, 0.08); cursor: pointer; transition: transform 180ms ease, border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease; } .ds-icon-button svg { width: 18px; height: 18px; } .ds-icon-button:hover { background: var(--hover-bg, rgba(255, 255, 255, 0.12)); border-color: rgba(0, 194, 255, 0.32); transform: translateY(-1px); } .ds-icon-button:focus-visible { outline: 0; box-shadow: 0 0 0 4px var(--focus-ring, rgba(0, 194, 255, 0.14)); }"
+    },
+    {
+      "name": "Search Input",
+      "kind": "input",
+      "refersTo": "input-search",
+      "description": "头部基金名称或代码搜索，焦点态扩展并显示实时操作感。",
+      "html": "<label class=\"ds-search\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"11\" cy=\"11\" r=\"7\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"/><path d=\"m16.5 16.5 4 4\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"/></svg><input type=\"search\" placeholder=\"搜索基金名称或代码\"/><button type=\"button\" aria-label=\"添加基金\">+</button></label>",
+      "css": ".ds-search { display: grid; grid-template-columns: 20px minmax(0, 1fr) 34px; align-items: center; width: min(100%, 380px); height: 44px; padding: 0 5px 0 15px; border: 1px solid var(--border-color-strong, rgba(255, 255, 255, 0.14)); border-radius: 15px; color: var(--text-muted, rgba(220, 236, 255, 0.62)); background: var(--input-bg, rgba(255, 255, 255, 0.08)); box-shadow: inset 0 1px 0 rgba(246, 249, 255, 0.08), 0 10px 24px rgba(0, 0, 0, 0.25); transition: border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease; } .ds-search svg { width: 18px; height: 18px; } .ds-search input { min-width: 0; border: 0; outline: 0; color: var(--text-color, #f6f9ff); background: transparent; font: 14px Inter, 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif; } .ds-search input::placeholder { color: var(--placeholder-color, rgba(222, 235, 255, 0.5)); } .ds-search button { width: 34px; height: 34px; border: 1px solid var(--border-color-strong, rgba(255, 255, 255, 0.14)); border-radius: 12px; color: var(--primary-color, #00c2ff); background: var(--button-bg, rgba(255, 255, 255, 0.07)); cursor: pointer; } .ds-search:focus-within { border-color: rgba(0, 194, 255, 0.42); background: var(--card-bg-strong, rgba(255, 255, 255, 0.11)); box-shadow: 0 0 0 4px var(--focus-ring, rgba(0, 194, 255, 0.14)), 0 10px 24px rgba(0, 0, 0, 0.25); }"
+    },
+    {
+      "name": "Metric Card",
+      "kind": "card",
+      "refersTo": "card-surface",
+      "description": "显示总资产估值、今日收益、关注基金等紧凑指标。",
+      "html": "<article class=\"ds-metric-card\"><span>今日收益</span><strong>1,248.3700</strong><small>+0.8600%</small></article>",
+      "css": ".ds-metric-card { display: grid; gap: 8px; width: 220px; padding: 18px; border: 1px solid var(--border-color, rgba(255, 255, 255, 0.05)); border-radius: 16px; color: var(--text-color, #f6f9ff); background: var(--card-bg, rgba(255, 255, 255, 0.08)); box-shadow: 0 18px 42px rgba(0, 0, 0, 0.2); } .ds-metric-card span, .ds-metric-card small { color: var(--text-muted, rgba(220, 236, 255, 0.62)); font: 12px Inter, 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif; } .ds-metric-card strong { color: var(--text-color, #f6f9ff); font: 700 24px Inter, 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif; letter-spacing: 0; }"
+    },
+    {
+      "name": "Side Navigation Item",
+      "kind": "nav",
+      "refersTo": "nav-item",
+      "description": "侧栏导航项，默认安静，hover 和 active 用弱背景提示。",
+      "html": "<nav class=\"ds-side-nav\"><button class=\"ds-side-nav-item ds-side-nav-item-active\">实时估值</button><button class=\"ds-side-nav-item\">持仓分析</button></nav>",
+      "css": ".ds-side-nav { display: grid; gap: 10px; width: 220px; padding: 18px; border: 1px solid var(--border-color, rgba(255, 255, 255, 0.05)); border-radius: 18px; background: var(--aside-bg, rgba(12, 28, 51, 0.76)); box-shadow: 0 18px 42px rgba(0, 0, 0, 0.2); } .ds-side-nav-item { width: 100%; height: 42px; padding: 0 14px; border: 1px solid transparent; border-radius: 12px; color: var(--text-muted, rgba(220, 236, 255, 0.62)); text-align: left; background: transparent; cursor: pointer; font: 14px Inter, 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif; transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease; } .ds-side-nav-item:hover, .ds-side-nav-item-active { color: var(--text-color, #f6f9ff); background: var(--hover-bg, rgba(255, 255, 255, 0.12)); border-color: var(--border-color-strong, rgba(255, 255, 255, 0.14)); } .ds-side-nav-item:focus-visible { outline: 0; box-shadow: 0 0 0 4px var(--focus-ring, rgba(0, 194, 255, 0.14)); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "盘中雷达",
+    "overview": "基金智估的界面像一个个人投资者在盘中打开的雷达面板：信息轻、反馈快、对变化敏感。它不是机构后台，也不是营销页；它要让用户在短时间内看见估值、涨跌、更新时间和同步状态，并快速完成搜索、刷新、导入或登录。",
+    "keyCharacteristics": [
+      "高信息密度，但主次清楚。",
+      "青色只用于主要动作、当前焦点、搜索反馈和实时状态。",
+      "半透明表面用于区域分层，不能发展成装饰性玻璃拟态。",
+      "组件语汇统一：Element Plus 为基础，项目自定义头部、搜索、登录弹层和数据卡片承载品牌气质。",
+      "动效短促，表达状态变化，不做页面入场表演。"
+    ],
+    "rules": [
+      {
+        "name": "The Radar Rarity Rule",
+        "body": "雷达青在任一屏幕上只服务主要动作、焦点和状态，不作为装饰性大面积背景。",
+        "section": "colors"
+      },
+      {
+        "name": "The No Bank Blue Rule",
+        "body": "禁止把深蓝、金色、厚重边框和传统后台导航组合成银行管理系统观感。",
+        "section": "colors"
+      },
+      {
+        "name": "The Data First Type Rule",
+        "body": "标题可以有力度，数据和控件必须稳定、紧凑、可扫读；禁止在按钮、标签和表格里使用展示字体。",
+        "section": "typography"
+      },
+      {
+        "name": "The Environment Layer Rule",
+        "body": "层级来自背景、边框、阴影和焦点状态的组合，不允许所有区域都像浮起卡片一样同等抢眼。",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do 使用 `primary-radar-cyan` 表示主要动作、当前焦点、实时刷新和同步状态。",
+      "Do 让估值、涨跌幅、更新时间和关注状态优先于装饰元素出现。",
+      "Do 保持按钮、输入、卡片、下拉菜单和弹层的圆角与边框语言一致。",
+      "Do 为刷新、同步、搜索、登录、导入提供明确状态反馈。",
+      "Do 在涨跌、风险、错误和成功状态里结合颜色、符号、文字或标签，满足 WCAG AA。"
+    ],
+    "donts": [
+      "Don't 做成传统银行后台，不要厚重、保守、层级繁杂的管理系统观感。",
+      "Don't 做成营销页感，不用大段宣传文案、夸张 hero、泛泛价值主张或装饰性模块。",
+      "Don't 为科技感堆叠深蓝、霓虹、玻璃拟态和大屏驾驶舱套路；实时数据应服务判断，不应变成表演。",
+      "Don't 使用超过 1px 的 `border-left` 或 `border-right` 彩色侧边条强调卡片、列表项、提示或警告。",
+      "Don't 使用渐变文字、装饰性玻璃卡片、无意义动效或重复的同尺寸图标卡片网格。"
+    ]
+  }
+}

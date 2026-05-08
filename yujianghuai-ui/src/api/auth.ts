@@ -3,7 +3,7 @@ import type { OAuthTokenResponse } from '@/utils/authStorage'
 
 const OAUTH_CLIENT_ID = import.meta.env.VITE_OAUTH_CLIENT_ID || 'yujianghuai-client'
 const OAUTH_CLIENT_SECRET = import.meta.env.VITE_OAUTH_CLIENT_SECRET || 'yujianghuai-secret'
-const OAUTH_SCOPE = import.meta.env.VITE_OAUTH_SCOPE || 'openid profile api.read api.write'
+const OAUTH_SCOPE = import.meta.env.VITE_OAUTH_SCOPE || 'email'
 
 interface EmailCodeLoginParams {
   tenantId: string
@@ -11,10 +11,18 @@ interface EmailCodeLoginParams {
   code: string
 }
 
-interface PasswordLoginParams {
+interface EmailCodeRegisterParams {
   tenantId: string
   username: string
+  email: string
   password: string
+  code: string
+}
+
+export interface RegisterResponse extends Partial<OAuthTokenResponse> {
+  username: string
+  nickname?: string
+  tenantName?: string
 }
 
 const buildTokenBody = (params: Record<string, string>) => {
@@ -56,19 +64,27 @@ export const loginByEmailCode = ({ tenantId, email, code }: EmailCodeLoginParams
   })
 }
 
-export const loginByPassword = ({ tenantId, username, password }: PasswordLoginParams): Promise<OAuthTokenResponse> => {
-  return request<OAuthTokenResponse>('/oauth2/token', {
+export const registerByEmailCode = ({
+  tenantId,
+  username,
+  email,
+  password,
+  code
+}: EmailCodeRegisterParams): Promise<RegisterResponse> => {
+  return request<RegisterResponse>('/auth/register', {
     method: 'POST',
     tenantId,
     headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
+      'Content-Type': 'application/json',
       'LOGIN-TYPE': 'PORTAL'
     },
-    body: buildTokenBody({
-      tenantId,
-      grant_type: 'password',
+    body: JSON.stringify({
+      tenantId: Number(tenantId),
       username,
-      password
+      nickname: username,
+      email,
+      password,
+      code
     })
   })
 }
