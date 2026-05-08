@@ -4,13 +4,14 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.yujianghuai.admin.entity.SysUser;
 import com.yujianghuai.admin.mapper.SysRelationMapper;
 import com.yujianghuai.admin.mapper.SysUserMapper;
+import com.yujianghuai.auth.support.core.LoginUserDetails;
 import com.yujianghuai.common.tenant.TenantContext;
+import com.yujianghuai.common.utils.CurrentUserInfo;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -71,11 +72,18 @@ public class AuthUserDetailsService implements UserDetailsService {
                         .map(SimpleGrantedAuthority::new)
                         .forEach(authorities::add);
             }
-            return User.withUsername(user.getUsername())
-                    .password(StringUtils.hasText(user.getPassword()) ? user.getPassword() : "")
-                    .authorities(authorities)
-                    .disabled(user.getStatus() == null || user.getStatus() != 1)
-                    .build();
+            CurrentUserInfo currentUserInfo = new CurrentUserInfo(
+                    user.getId(),
+                    user.getUsername(),
+                    user.getNickname(),
+                    user.getRealName(),
+                    tenant.getTenantCode());
+            return new LoginUserDetails(
+                    user.getUsername(),
+                    StringUtils.hasText(user.getPassword()) ? user.getPassword() : "",
+                    user.getStatus() != null && user.getStatus() == 1,
+                    authorities,
+                    currentUserInfo);
         });
     }
 }

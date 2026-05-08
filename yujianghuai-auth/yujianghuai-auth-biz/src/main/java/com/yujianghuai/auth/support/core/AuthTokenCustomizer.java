@@ -1,7 +1,10 @@
 package com.yujianghuai.auth.support.core;
 
 import com.yujianghuai.auth.support.base.OAuth2ResourceOwnerBaseAuthenticationToken;
+import com.yujianghuai.common.utils.CurrentUserInfo;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.oauth2.server.authorization.token.JwtEncodingContext;
@@ -29,6 +32,9 @@ public class AuthTokenCustomizer implements OAuth2TokenCustomizer<JwtEncodingCon
             context.getClaims()
                     .claim(CLAIM_USERNAME, userDetails.getUsername())
                     .claim(CLAIM_AUTHORITIES, authorities);
+            if (userDetails instanceof LoginUserDetails loginUserDetails) {
+                context.getClaims().claim("current_user", toCurrentUserClaim(loginUserDetails.getCurrentUserInfo()));
+            }
         }
 
         if (context.getAuthorizationGrant() instanceof OAuth2ResourceOwnerBaseAuthenticationToken grantAuthentication) {
@@ -37,5 +43,15 @@ public class AuthTokenCustomizer implements OAuth2TokenCustomizer<JwtEncodingCon
                 context.getClaims().claim(CLAIM_TENANT_ID, tenantId.toString());
             }
         }
+    }
+
+    private Map<String, Object> toCurrentUserClaim(CurrentUserInfo currentUserInfo) {
+        Map<String, Object> claim = new LinkedHashMap<>();
+        claim.put("id", currentUserInfo.getId());
+        claim.put("username", currentUserInfo.getUsername());
+        claim.put("nickname", currentUserInfo.getNickname());
+        claim.put("realName", currentUserInfo.getRealName());
+        claim.put("tenant", currentUserInfo.getTenant());
+        return claim;
     }
 }
