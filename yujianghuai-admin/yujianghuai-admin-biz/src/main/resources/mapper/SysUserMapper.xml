@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yujianghuai.admin.mapper.SysUserMapper">
+
+    <resultMap id="BaseResultMap" type="com.yujianghuai.admin.entity.SysUser">
+        <id column="id" property="id" />
+        <result column="tenant_id" property="tenantId" />
+        <result column="dept_id" property="deptId" />
+        <result column="username" property="username" />
+        <result column="password" property="password" />
+        <result column="nickname" property="nickname" />
+        <result column="real_name" property="realName" />
+        <result column="email" property="email" />
+        <result column="mobile" property="mobile" />
+        <result column="user_type" property="userType" />
+        <result column="status" property="status" />
+        <result column="create_by" property="createBy" />
+        <result column="update_by" property="updateBy" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+        <result column="del_flag" property="delFlag" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        `id`, `tenant_id`, `dept_id`, `username`, `password`, `nickname`, `real_name`, `email`, `mobile`, `user_type`, `status`, `create_by`, `update_by`, `create_time`, `update_time`, `del_flag`
+    </sql>
+
+</mapper>
