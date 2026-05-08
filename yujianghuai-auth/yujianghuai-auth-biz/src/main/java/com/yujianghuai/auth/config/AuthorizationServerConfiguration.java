@@ -5,7 +5,11 @@ import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
+import com.yujianghuai.auth.mapper.SysOauthClientMapper;
+import com.yujianghuai.auth.repository.RedisOAuth2AuthorizationService;
+import com.yujianghuai.auth.repository.SysOauthRegisteredClientRepository;
 import com.yujianghuai.auth.service.AuthUserDetailsService;
+import com.yujianghuai.auth.service.AuthLoginPermissionService;
 import com.yujianghuai.auth.support.core.AuthTokenCustomizer;
 import com.yujianghuai.auth.support.email.EmailCodeAuthenticationService;
 import com.yujianghuai.auth.support.email.OAuth2ResourceOwnerEmailAuthenticationConverter;
@@ -14,6 +18,7 @@ import com.yujianghuai.auth.support.handler.AuthFailureHandler;
 import com.yujianghuai.auth.support.handler.AuthSuccessHandler;
 import com.yujianghuai.auth.support.password.OAuth2ResourceOwnerPasswordAuthenticationConverter;
 import com.yujianghuai.auth.support.password.OAuth2ResourceOwnerPasswordAuthenticationProvider;
+import com.yujianghuai.common.constant.SecurityConstants;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.interfaces.RSAPrivateKey;
@@ -29,9 +34,10 @@ import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.ProviderManager;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.core.GrantedAuthority;
@@ -39,25 +45,18 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.core.AuthorizationGrantType;
-import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.oauth2.server.authorization.InMemoryOAuth2AuthorizationConsentService;
-import org.springframework.security.oauth2.server.authorization.InMemoryOAuth2AuthorizationService;
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationConsentService;
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService;
-import org.springframework.security.oauth2.server.authorization.client.InMemoryRegisteredClientRepository;
-import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.config.annotation.web.configuration.OAuth2AuthorizationServerConfiguration;
 import org.springframework.security.oauth2.server.authorization.config.annotation.web.configurers.OAuth2AuthorizationServerConfigurer;
 import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
-import org.springframework.security.oauth2.server.authorization.settings.ClientSettings;
-import org.springframework.security.oauth2.server.authorization.settings.TokenSettings;
 import org.springframework.security.oauth2.server.authorization.token.DelegatingOAuth2TokenGenerator;
 import org.springframework.security.oauth2.server.authorization.token.JwtGenerator;
 import org.springframework.security.oauth2.server.authorization.token.OAuth2RefreshTokenGenerator;
@@ -68,26 +67,26 @@ import org.springframework.security.web.authentication.DelegatingAuthenticationC
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.security.web.util.matcher.MediaTypeRequestMatcher;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.util.StringUtils;
 
 @Configuration
 @EnableMethodSecurity
 public class AuthorizationServerConfiguration {
 
-    private static final String UNAUTHORIZED_MESSAGE = "权限不足，请登录后再试！";
-
     @Bean
     @Order(Ordered.HIGHEST_PRECEDENCE)
     public SecurityFilterChain authorizationServerSecurityFilterChain(
             HttpSecurity http,
-            AuthenticationConfiguration authenticationConfiguration,
             OAuth2AuthorizationService authorizationService,
             AuthorizationServerSettings authorizationServerSettings,
             OAuth2TokenGenerator<?> tokenGenerator,
             AuthSuccessHandler successHandler,
             AuthFailureHandler failureHandler,
             AuthUserDetailsService authUserDetailsService,
+            AuthLoginPermissionService loginPermissionService,
             EmailCodeAuthenticationService emailCodeAuthenticationService,
+            PasswordEncoder passwordEncoder,
             JwtAuthenticationConverter jwtAuthenticationConverter) throws Exception {
 
         OAuth2AuthorizationServerConfiguration.applyDefaultSecurity(http);
@@ -105,8 +104,9 @@ public class AuthorizationServerConfiguration {
                 .authorizationServerSettings(authorizationServerSettings)
                 .oidc(Customizer.withDefaults());
 
-        addCustomOAuth2GrantAuthenticationProvider(http, authenticationConfiguration, authorizationService,
-                tokenGenerator, authUserDetailsService, emailCodeAuthenticationService);
+        addCustomOAuth2GrantAuthenticationProvider(http, authorizationService,
+                tokenGenerator, authUserDetailsService, loginPermissionService,
+                emailCodeAuthenticationService, passwordEncoder);
 
         http.csrf(AbstractHttpConfigurer::disable)
                 .exceptionHandling(exceptions -> exceptions.defaultAuthenticationEntryPointFor(
@@ -127,13 +127,11 @@ public class AuthorizationServerConfiguration {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(registry -> registry
                         .requestMatchers(
-                                "/auth/**",
+                                "/auth2/**",
                                 "/api/funds/search",
                                 "/admin-api/email/verification-code",
                                 "/api/funds/estimate/**",
                                 "/api/funds/indices",
-                                "/token/check_token",
-                                "/token/logout",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
@@ -145,13 +143,13 @@ public class AuthorizationServerConfiguration {
                             response.setStatus(HttpStatus.UNAUTHORIZED.value());
                             response.setCharacterEncoding("UTF-8");
                             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-                            response.getWriter().write("{\"code\":401,\"message\":\"" + UNAUTHORIZED_MESSAGE + "\",\"data\":null}");
+                            response.getWriter().write("{\"code\":401,\"message\":\"" + SecurityConstants.AUTH_UNAUTHORIZED_MESSAGE + "\",\"data\":null}");
                         })
                         .accessDeniedHandler((request, response, accessDeniedException) -> {
                             response.setStatus(HttpStatus.FORBIDDEN.value());
                             response.setCharacterEncoding("UTF-8");
                             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-                            response.getWriter().write("{\"code\":403,\"message\":\"无权限访问该接口\",\"data\":null}");
+                            response.getWriter().write("{\"code\":403,\"message\":\"" + SecurityConstants.AUTH_ACCESS_DENIED_MESSAGE + "\",\"data\":null}");
                         }))
                 .formLogin(Customizer.withDefaults())
                 .oauth2ResourceServer(resourceServer -> resourceServer
@@ -194,34 +192,9 @@ public class AuthorizationServerConfiguration {
     }
 
     @Bean
-    public RegisteredClientRepository registeredClientRepository(AuthProperties properties,
+    public RegisteredClientRepository registeredClientRepository(SysOauthClientMapper clientMapper,
                                                                  PasswordEncoder passwordEncoder) {
-        AuthProperties.Oauth2 oauth2 = properties.getOauth2();
-        RegisteredClient.Builder builder = RegisteredClient.withId(UUID.randomUUID().toString())
-                .clientId(oauth2.getClientId())
-                .clientSecret(passwordEncoder.encode(oauth2.getClientSecret()))
-                .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
-                .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_POST)
-                .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
-                .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
-                .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
-                .authorizationGrantType(AuthorizationGrantType.PASSWORD)
-                .authorizationGrantType(OAuth2ResourceOwnerEmailAuthenticationProvider.EMAIL_CODE)
-                .clientSettings(ClientSettings.builder().requireAuthorizationConsent(false).build())
-                .tokenSettings(TokenSettings.builder()
-                        .accessTokenTimeToLive(oauth2.getAccessTokenTtl())
-                        .refreshTokenTimeToLive(oauth2.getRefreshTokenTtl())
-                        .reuseRefreshTokens(false)
-                        .build());
-
-        oauth2.getRedirectUris().stream()
-                .filter(StringUtils::hasText)
-                .forEach(builder::redirectUri);
-        oauth2.getScopes().stream()
-                .filter(StringUtils::hasText)
-                .forEach(builder::scope);
-
-        return new InMemoryRegisteredClientRepository(builder.build());
+        return new SysOauthRegisteredClientRepository(clientMapper, passwordEncoder);
     }
 
     @Bean
@@ -237,8 +210,8 @@ public class AuthorizationServerConfiguration {
     }
 
     @Bean
-    public OAuth2AuthorizationService authorizationService() {
-        return new InMemoryOAuth2AuthorizationService();
+    public OAuth2AuthorizationService authorizationService(StringRedisTemplate stringRedisTemplate) {
+        return new RedisOAuth2AuthorizationService(stringRedisTemplate);
     }
 
     @Bean
@@ -247,9 +220,8 @@ public class AuthorizationServerConfiguration {
     }
 
     @Bean
-    public AuthorizationServerSettings authorizationServerSettings(AuthProperties properties) {
-        String issuer = properties == null ? "http://127.0.0.1:9100" : properties.getOauth2().getIssuer();
-        return AuthorizationServerSettings.builder().issuer(issuer).build();
+    public AuthorizationServerSettings authorizationServerSettings() {
+        return AuthorizationServerSettings.builder().build();
     }
 
     @Bean
@@ -276,14 +248,18 @@ public class AuthorizationServerConfiguration {
 
     private void addCustomOAuth2GrantAuthenticationProvider(
             HttpSecurity http,
-            AuthenticationConfiguration authenticationConfiguration,
             OAuth2AuthorizationService authorizationService,
             OAuth2TokenGenerator<?> tokenGenerator,
             AuthUserDetailsService authUserDetailsService,
-            EmailCodeAuthenticationService emailCodeAuthenticationService) throws Exception {
-        AuthenticationManager authenticationManager = authenticationConfiguration.getAuthenticationManager();
+            AuthLoginPermissionService loginPermissionService,
+            EmailCodeAuthenticationService emailCodeAuthenticationService,
+            PasswordEncoder passwordEncoder) {
+        DaoAuthenticationProvider daoAuthenticationProvider = new DaoAuthenticationProvider();
+        daoAuthenticationProvider.setUserDetailsService(authUserDetailsService);
+        daoAuthenticationProvider.setPasswordEncoder(passwordEncoder);
+        AuthenticationManager authenticationManager = new ProviderManager(daoAuthenticationProvider);
         http.authenticationProvider(new OAuth2ResourceOwnerPasswordAuthenticationProvider(
-                authenticationManager, authorizationService, tokenGenerator));
+                authenticationManager, authorizationService, tokenGenerator, loginPermissionService));
         http.authenticationProvider(new OAuth2ResourceOwnerEmailAuthenticationProvider(
                 authenticationManager, authorizationService, tokenGenerator,
                 authUserDetailsService, emailCodeAuthenticationService));

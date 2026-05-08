@@ -220,7 +220,7 @@
               <img :src="fundLogoUrl" alt="" />
             </span>
             <div>
-              <h2 id="login-dialog-title">基金智估</h2>
+              <h2 id="login-dialog-title">{{ loginDialogTitle }}</h2>
               <p>{{ loginDialogSubtitle }}</p>
             </div>
           </div>
@@ -238,15 +238,6 @@
             <button
               type="button"
               role="tab"
-              :aria-selected="loginMode === 'password'"
-              :class="{ 'app-header__login-tab--active': loginMode === 'password' }"
-              @click="setLoginMode('password')"
-            >
-              密码登录
-            </button>
-            <button
-              type="button"
-              role="tab"
               :aria-selected="loginMode === 'register'"
               :class="{ 'app-header__login-tab--active': loginMode === 'register' }"
               @click="setLoginMode('register')"
@@ -256,40 +247,74 @@
           </div>
 
           <form class="app-header__login-form" @submit.prevent="handleLoginSubmit">
-            <label class="app-header__login-field">
-              <span>租户 ID</span>
-              <div class="app-header__login-input">
+            <p v-if="formError" class="app-header__login-alert" role="alert">{{ formError }}</p>
+
+            <label v-if="loginMode === 'register'" class="app-header__login-field">
+              <span>用户名</span>
+              <div class="app-header__login-input" :class="{ 'app-header__login-input--invalid': formErrors.username }">
                 <el-icon :size="17">
-                  <Setting />
+                  <User />
                 </el-icon>
-                <input v-model="loginForm.tenantId" type="text" placeholder="请输入租户 ID" autocomplete="organization" />
+                <input
+                  v-model="loginForm.username"
+                  type="text"
+                  placeholder="用于账户显示"
+                  autocomplete="username"
+                  :aria-invalid="Boolean(formErrors.username)"
+                />
               </div>
+              <small v-if="formErrors.username" class="app-header__login-error">{{ formErrors.username }}</small>
             </label>
 
             <label class="app-header__login-field">
-              <span>{{ loginMode === 'password' ? '邮箱 / 用户名' : '邮箱' }}</span>
-              <div class="app-header__login-input">
+              <span>邮箱</span>
+              <div class="app-header__login-input" :class="{ 'app-header__login-input--invalid': formErrors.email }">
                 <el-icon :size="17">
                   <Message />
                 </el-icon>
-                <input v-model="loginForm.email" type="email" placeholder="请输入邮箱" autocomplete="email" />
+                <input
+                  v-model="loginForm.email"
+                  type="email"
+                  placeholder="name@example.com"
+                  autocomplete="email"
+                  :aria-invalid="Boolean(formErrors.email)"
+                />
               </div>
+              <small v-if="formErrors.email" class="app-header__login-error">{{ formErrors.email }}</small>
             </label>
 
-            <label v-if="loginMode === 'emailCode'" class="app-header__login-field">
+            <label v-if="loginMode === 'register'" class="app-header__login-field">
+              <span>密码</span>
+              <div class="app-header__login-input" :class="{ 'app-header__login-input--invalid': formErrors.password }">
+                <el-icon :size="17">
+                  <Lock />
+                </el-icon>
+                <input
+                  v-model="loginForm.password"
+                  type="password"
+                  placeholder="至少 8 位密码"
+                  autocomplete="new-password"
+                  :aria-invalid="Boolean(formErrors.password)"
+                />
+              </div>
+              <small v-if="formErrors.password" class="app-header__login-error">{{ formErrors.password }}</small>
+            </label>
+
+            <label class="app-header__login-field">
               <span>邮箱验证码</span>
               <div class="app-header__login-code-row">
-                <div class="app-header__login-input">
+                <div class="app-header__login-input" :class="{ 'app-header__login-input--invalid': formErrors.code }">
                   <el-icon :size="17">
                     <Lock />
                   </el-icon>
                   <input
                     v-model="loginForm.code"
                     type="text"
-                    placeholder="请输入验证码"
+                    placeholder="6 位验证码"
                     inputmode="numeric"
                     maxlength="8"
                     autocomplete="one-time-code"
+                    :aria-invalid="Boolean(formErrors.code)"
                   />
                 </div>
                 <button
@@ -301,73 +326,37 @@
                   {{ verificationCodeButtonText }}
                 </button>
               </div>
+              <small v-if="formErrors.code" class="app-header__login-error">{{ formErrors.code }}</small>
             </label>
 
-            <label v-if="loginMode === 'password' || loginMode === 'register'" class="app-header__login-field">
-              <span>密码</span>
-              <div class="app-header__login-input">
-                <el-icon :size="17">
-                  <Lock />
-                </el-icon>
-                <input
-                  v-model="loginForm.password"
-                  type="password"
-                  placeholder="请输入密码"
-                  autocomplete="current-password"
-                />
-              </div>
-            </label>
-
-            <label v-if="loginMode === 'register'" class="app-header__login-field">
-              <span>确认密码</span>
-              <div class="app-header__login-input">
-                <el-icon :size="17">
-                  <Lock />
-                </el-icon>
-                <input
-                  v-model="loginForm.confirmPassword"
-                  type="password"
-                  placeholder="请再次输入密码"
-                  autocomplete="new-password"
-                />
-              </div>
-            </label>
-
-            <div v-if="loginMode === 'password'" class="app-header__login-meta">
-              <label>
-                <input v-model="loginForm.remember" type="checkbox" />
-                <span>保持登录</span>
-              </label>
-              <button type="button" @click="setLoginMode('emailCode')">使用验证码登录</button>
-            </div>
-
-            <p v-if="loginMode === 'emailCode'" class="app-header__login-hint">
-              验证码发送成功后 60 秒内不可重复发送，登录请求会携带当前租户 ID。
+            <p class="app-header__login-hint">
+              {{ loginMode === 'register' ? '创建成功后将自动登录，并继续同步账户数据。' : '验证码发送成功后 60 秒内不可重复发送。' }}
             </p>
 
-            <button class="app-header__login-submit" type="submit" :disabled="isLoginSubmitting">
+            <details class="app-header__login-advanced">
+              <summary>高级设置</summary>
+              <label class="app-header__login-field">
+                <span>租户 ID</span>
+                <div class="app-header__login-input" :class="{ 'app-header__login-input--invalid': formErrors.tenantId }">
+                  <el-icon :size="17">
+                    <Setting />
+                  </el-icon>
+                  <input
+                    v-model="loginForm.tenantId"
+                    type="text"
+                    placeholder="默认 1"
+                    autocomplete="organization"
+                    :aria-invalid="Boolean(formErrors.tenantId)"
+                  />
+                </div>
+                <small v-if="formErrors.tenantId" class="app-header__login-error">{{ formErrors.tenantId }}</small>
+              </label>
+            </details>
+
+            <button class="app-header__login-submit" type="submit" :disabled="isLoginSubmitting || isSendingVerificationCode">
               {{ loginSubmitText }}
             </button>
           </form>
-
-          <div v-if="loginMode !== 'register'" class="app-header__login-divider" role="presentation">
-            <span>其他方式登录</span>
-          </div>
-
-          <div v-if="loginMode !== 'register'" class="app-header__login-providers">
-            <button type="button" @click="setLoginMode('password')">
-              <el-icon :size="16">
-                <Lock />
-              </el-icon>
-              密码登录
-            </button>
-            <button type="button" @click="setLoginMode('emailCode')">
-              <el-icon :size="16">
-                <Message />
-              </el-icon>
-              邮箱验证码
-            </button>
-          </div>
 
           <footer class="app-header__login-footer">
             <template v-if="loginMode !== 'register'">
@@ -404,9 +393,10 @@ import {
   Setting,
   Sunny,
   SwitchButton,
+  User,
 } from '@element-plus/icons-vue'
 
-import { loginByEmailCode, loginByPassword, sendEmailVerificationCode } from '@/api/auth'
+import { loginByEmailCode, registerByEmailCode, sendEmailVerificationCode } from '@/api/auth'
 import fundLogoUrl from '@/assets/logo/fund-logo.svg'
 import userAvatarUrl from '@/assets/logo/user-avatar.svg'
 import { useTheme } from '@/composables/useTheme'
@@ -432,33 +422,42 @@ const userProfile = ref({
   email: storedSession?.email || '未登录',
   syncedAt: storedSession ? new Date().toLocaleString('zh-CN', { hour12: false }).slice(5, 16) : '--',
 })
-type LoginMode = 'emailCode' | 'password' | 'register'
+type LoginMode = 'emailCode' | 'register'
+
+interface LoginFormErrors {
+  tenantId?: string
+  username?: string
+  email?: string
+  password?: string
+  code?: string
+}
 
 const loginMode = ref<LoginMode>('emailCode')
 const loginForm = ref({
   tenantId: storedSession?.tenantId || getStoredTenantId(),
+  username: '',
   email: '',
   code: '',
   password: '',
-  confirmPassword: '',
-  remember: true,
 })
 const isLoginSubmitting = ref(false)
 const isSendingVerificationCode = ref(false)
 const verificationCooldown = ref(0)
+const formError = ref('')
+const formErrors = ref<LoginFormErrors>({})
 let verificationTimer: ReturnType<typeof window.setInterval> | undefined
+
+const loginDialogTitle = computed(() => {
+  return loginMode.value === 'register' ? '创建账户' : '登录基金智估'
+})
 
 const loginDialogSubtitle = computed(() => {
   if (loginMode.value === 'emailCode') {
-    return '使用邮箱验证码快速登录'
-  }
-
-  if (loginMode.value === 'password') {
-    return '使用账号密码登录'
+    return '用邮箱验证码同步自选与持仓数据'
   }
 
   if (loginMode.value === 'register') {
-    return '创建账号并同步基金数据'
+    return '创建后自动登录，继续查看实时估值'
   }
 
   return '同步持仓收益与自选基金'
@@ -466,19 +465,15 @@ const loginDialogSubtitle = computed(() => {
 
 const loginSubmitText = computed(() => {
   if (isLoginSubmitting.value) {
-    return '处理中...'
+    return loginMode.value === 'register' ? '创建中...' : '登录中...'
   }
 
   if (loginMode.value === 'emailCode') {
-    return '验证码登录'
-  }
-
-  if (loginMode.value === 'password') {
-    return '密码登录'
+    return '登录并同步'
   }
 
   if (loginMode.value === 'register') {
-    return '创建账号'
+    return '创建并登录'
   }
 
   return '登录'
@@ -493,7 +488,7 @@ const verificationCodeButtonText = computed(() => {
     return '发送中...'
   }
 
-  return '发送验证码'
+  return '获取验证码'
 })
 
 const isVerificationCodeButtonDisabled = computed(() => {
@@ -506,28 +501,43 @@ const isValidEmail = (email: string): boolean => {
 
 const normalizeLoginForm = () => {
   const tenantId = loginForm.value.tenantId.trim() || '1'
+  const username = loginForm.value.username.trim()
   const email = loginForm.value.email.trim()
   const code = loginForm.value.code.trim()
   const password = loginForm.value.password
 
   return {
     tenantId,
+    username,
     email,
     code,
     password
   }
 }
 
+const clearFormFeedback = (): void => {
+  formError.value = ''
+  formErrors.value = {}
+}
+
 const requireTenantAndEmail = (): { tenantId: string; email: string } | null => {
   const { tenantId, email } = normalizeLoginForm()
+  const nextErrors: LoginFormErrors = {}
 
   if (!tenantId) {
-    ElMessage.warning('请输入租户 ID')
-    return null
+    nextErrors.tenantId = '请输入租户 ID'
   }
 
   if (!isValidEmail(email)) {
-    ElMessage.warning('请输入正确的邮箱地址')
+    nextErrors.email = '请输入有效邮箱'
+  }
+
+  if (Object.keys(nextErrors).length > 0) {
+    formErrors.value = {
+      ...formErrors.value,
+      ...nextErrors,
+    }
+    formError.value = '请先完善高亮字段'
     return null
   }
 
@@ -567,6 +577,7 @@ const markLoginSuccess = (email: string): void => {
 }
 
 const handleSendVerificationCode = async (): Promise<void> => {
+  clearFormFeedback()
   const payload = requireTenantAndEmail()
 
   if (!payload || isVerificationCodeButtonDisabled.value) {
@@ -628,6 +639,7 @@ const handleLogout = (): void => {
 
 const setLoginMode = (mode: LoginMode): void => {
   loginMode.value = mode
+  clearFormFeedback()
 }
 
 const openLoginDialog = (): void => {
@@ -637,54 +649,68 @@ const openLoginDialog = (): void => {
 }
 
 const handleLoginSubmit = async (): Promise<void> => {
+  clearFormFeedback()
+  const normalizedForm = normalizeLoginForm()
   const payload = requireTenantAndEmail()
 
   if (!payload) {
     return
   }
 
-  if (loginMode.value === 'emailCode' && !loginForm.value.code.trim()) {
-    ElMessage.warning('请输入邮箱验证码')
-    return
+  const nextErrors: LoginFormErrors = {}
+
+  if (loginMode.value === 'register' && !normalizedForm.username) {
+    nextErrors.username = '请输入用户名'
   }
 
-  if ((loginMode.value === 'password' || loginMode.value === 'register') && !loginForm.value.password) {
-    ElMessage.warning('请输入密码')
-    return
+  if (loginMode.value === 'register' && !normalizedForm.password) {
+    nextErrors.password = '请输入密码'
+  } else if (loginMode.value === 'register' && normalizedForm.password.length < 8) {
+    nextErrors.password = '密码至少 8 位'
   }
 
-  if (loginMode.value === 'register') {
-    if (loginForm.value.password !== loginForm.value.confirmPassword) {
-      ElMessage.warning('两次输入的密码不一致')
-      return
-    }
+  if (!normalizedForm.code) {
+    nextErrors.code = '请输入验证码'
+  }
 
-    ElMessage.info('注册接口暂未接入，请先使用邮箱验证码登录')
+  if (Object.keys(nextErrors).length > 0) {
+    formErrors.value = nextErrors
+    formError.value = '请先完善高亮字段'
     return
   }
 
   isLoginSubmitting.value = true
 
   try {
-    const tokenResponse =
-      loginMode.value === 'emailCode'
-        ? await loginByEmailCode({
+    const registerResponse =
+      loginMode.value === 'register'
+        ? await registerByEmailCode({
             tenantId: payload.tenantId,
+            username: normalizedForm.username,
             email: payload.email,
-            code: loginForm.value.code.trim(),
+            password: normalizedForm.password,
+            code: normalizedForm.code,
           })
-        : await loginByPassword({
-            tenantId: payload.tenantId,
-            username: payload.email,
-            password: loginForm.value.password,
-          })
+        : null
+
+    const tokenResponse = registerResponse?.access_token
+      ? {
+          access_token: registerResponse.access_token,
+          token_type: registerResponse.token_type,
+          expires_in: registerResponse.expires_in,
+          scope: registerResponse.scope,
+        }
+      : await loginByEmailCode({
+          tenantId: payload.tenantId,
+          email: payload.email,
+          code: normalizedForm.code,
+        })
 
     const session = saveOAuthToken(tokenResponse, payload.tenantId, payload.email)
     markLoginSuccess(session.email)
-    ElMessage.success('登录成功')
+    ElMessage.success('已登录，正在同步账户数据')
   } catch (error) {
-    const message = error instanceof Error ? error.message : '登录失败'
-    ElMessage.error(message)
+    formError.value = error instanceof Error ? error.message : loginMode.value === 'register' ? '注册失败，请稍后再试' : '登录失败，请检查邮箱和验证码'
   } finally {
     isLoginSubmitting.value = false
   }
@@ -1119,7 +1145,7 @@ const refreshHeader = (): void => {
 
 .app-header__login-tabs {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 4px;
   height: 42px;
   padding: 4px;
@@ -1147,6 +1173,17 @@ const refreshHeader = (): void => {
       box-shadow: 0 0 0 3px var(--focus-ring);
     }
   }
+}
+
+.app-header__login-alert {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 77, 79, 0.34);
+  border-radius: 12px;
+  color: #ff4d4f;
+  background: rgba(255, 77, 79, 0.1);
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .app-header__login-code-row {
@@ -1244,6 +1281,17 @@ const refreshHeader = (): void => {
   }
 }
 
+.app-header__login-input--invalid {
+  border-color: rgba(255, 77, 79, 0.48);
+  box-shadow: 0 0 0 4px rgba(255, 77, 79, 0.08), inset 0 1px 0 rgba(var(--text-color-rgb), 0.06);
+}
+
+.app-header__login-error {
+  color: #ff4d4f;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 .app-header__login-meta {
   display: flex;
   align-items: center;
@@ -1277,6 +1325,24 @@ const refreshHeader = (): void => {
   color: var(--text-muted);
   font-size: 12px;
   line-height: 1.6;
+}
+
+.app-header__login-advanced {
+  display: grid;
+  gap: 10px;
+  color: var(--text-muted);
+  font-size: 13px;
+
+  summary {
+    width: max-content;
+    cursor: pointer;
+    color: var(--primary-color);
+    font-weight: 700;
+  }
+
+  .app-header__login-field {
+    margin-top: 10px;
+  }
 }
 
 .app-header__login-submit {
@@ -1689,8 +1755,7 @@ const refreshHeader = (): void => {
   }
 
   .app-header__login-tabs {
-    height: auto;
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
 
     button {
       min-height: 34px;

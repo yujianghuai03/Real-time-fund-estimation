@@ -14,28 +14,6 @@ spring:
 server:
   port: 9100
 
-auth:
-  secret: change-me
-  token-expire-seconds: 7200
-  demo-user:
-    username: admin
-    password: 123456
-    roles:
-      - ADMIN
-  oauth2:
-    issuer: http://127.0.0.1:9100
-    client-id: yujianghuai-client
-    client-secret: yujianghuai-secret
-    redirect-uris:
-      - http://127.0.0.1:8080/login/oauth2/code/yujianghuai
-    scopes:
-      - openid
-      - profile
-      - api.read
-      - api.write
-    access-token-ttl: 2h
-    refresh-token-ttl: 7d
-
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true

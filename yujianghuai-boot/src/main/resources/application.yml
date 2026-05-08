@@ -27,33 +27,10 @@ mybatis-plus:
   global-config:
     db-config:
       id-type: auto
-
-auth:
-  secret: change-me
-  token-expire-seconds: 7200
-#  demo-user:
-#    username: admin
-#    password: 123456
-#    roles:
-#      - ADMIN
-  oauth2:
-    issuer: http://127.0.0.1:8080
-    client-id: yujianghuai-client
-    client-secret: yujianghuai-secret
-    redirect-uris:
-      - http://127.0.0.1:8080/login/oauth2/code/yujianghuai
-    scopes:
-      - openid
-      - profile
-      - api.read
-      - api.write
-    access-token-ttl: 2h
-    refresh-token-ttl: 7d
-
 app:
   exception:
     # 开发测试环境可开启业务异常堆栈日志，生产环境建议保持关闭
-    print-business-stack-trace: false
+    print-business-stack-trace: true
   email:
     host: ${APP_EMAIL_HOST:smtp.qq.com}
     port: ${APP_EMAIL_PORT:465}

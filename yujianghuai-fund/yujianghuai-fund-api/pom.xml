@@ -24,10 +24,6 @@
         </dependency>
         <dependency>
             <groupId>com.yujianghuai</groupId>
-            <artifactId>yujianghuai-common-mq</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.yujianghuai</groupId>
             <artifactId>yujianghuai-common-redis</artifactId>
         </dependency>
         <dependency>

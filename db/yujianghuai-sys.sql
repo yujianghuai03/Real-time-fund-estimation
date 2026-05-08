@@ -470,7 +470,7 @@ INSERT INTO `sys_oauth_client` (
     'client_secret_basic,client_secret_post',
     'authorization_code,refresh_token,client_credentials,password,email_code',
     'http://127.0.0.1:8080/login/oauth2/code/yujianghuai',
-    'openid,profile,api.read,api.write',
+    'openid,profile,api.read,api.write,email',
     7200,
     604800,
     0,
