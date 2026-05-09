@@ -4,9 +4,9 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.yujianghuai.auth.entity.SysOauthClient;
 import com.yujianghuai.auth.mapper.SysOauthClientMapper;
 import com.yujianghuai.auth.support.email.OAuth2ResourceOwnerEmailAuthenticationProvider;
+import com.yujianghuai.common.tenant.TenantContext;
 import java.time.Duration;
 import java.util.Arrays;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
@@ -19,11 +19,9 @@ import org.springframework.util.StringUtils;
 public class SysOauthRegisteredClientRepository implements RegisteredClientRepository {
 
     private final SysOauthClientMapper clientMapper;
-    private final PasswordEncoder passwordEncoder;
 
-    public SysOauthRegisteredClientRepository(SysOauthClientMapper clientMapper, PasswordEncoder passwordEncoder) {
+    public SysOauthRegisteredClientRepository(SysOauthClientMapper clientMapper) {
         this.clientMapper = clientMapper;
-        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
@@ -34,8 +32,13 @@ public class SysOauthRegisteredClientRepository implements RegisteredClientRepos
     @Override
     public RegisteredClient findById(String id) {
         Assert.hasText(id, "id cannot be empty");
+        Long clientId = parseClientId(id);
+        if (clientId == null) {
+            return null;
+        }
+
         SysOauthClient client = clientMapper.selectOne(new LambdaQueryWrapper<SysOauthClient>()
-                .eq(SysOauthClient::getId, Long.valueOf(id))
+                .eq(SysOauthClient::getId, clientId)
                 .eq(SysOauthClient::getStatus, 1)
                 .last("limit 1"));
         return client == null ? null : toRegisteredClient(client);
@@ -44,9 +47,16 @@ public class SysOauthRegisteredClientRepository implements RegisteredClientRepos
     @Override
     public RegisteredClient findByClientId(String clientId) {
         Assert.hasText(clientId, "clientId cannot be empty");
-        SysOauthClient client = clientMapper.selectOne(new LambdaQueryWrapper<SysOauthClient>()
+        LambdaQueryWrapper<SysOauthClient> wrapper = new LambdaQueryWrapper<SysOauthClient>()
                 .eq(SysOauthClient::getClientId, clientId)
-                .eq(SysOauthClient::getStatus, 1)
+                .eq(SysOauthClient::getStatus, 1);
+
+        Long tenantId = getCurrentTenantId();
+        if (tenantId != null) {
+            wrapper.eq(SysOauthClient::getTenantId, tenantId);
+        }
+
+        SysOauthClient client = clientMapper.selectOne(wrapper
                 .orderByAsc(SysOauthClient::getTenantId)
                 .orderByAsc(SysOauthClient::getId)
                 .last("limit 1"));
@@ -56,7 +66,7 @@ public class SysOauthRegisteredClientRepository implements RegisteredClientRepos
     private RegisteredClient toRegisteredClient(SysOauthClient client) {
         RegisteredClient.Builder builder = RegisteredClient.withId(String.valueOf(client.getId()))
                 .clientId(client.getClientId())
-                .clientSecret(resolveClientSecret(client.getClientSecret()))
+                .clientSecret(client.getClientSecret())
                 .clientName(client.getClientName())
                 .clientSettings(ClientSettings.builder()
                         .requireAuthorizationConsent(isEnabled(client.getRequireAuthorizationConsent()))
@@ -120,14 +130,24 @@ public class SysOauthRegisteredClientRepository implements RegisteredClientRepos
         return new AuthorizationGrantType(value);
     }
 
-    private String resolveClientSecret(String clientSecret) {
-        if (!StringUtils.hasText(clientSecret)) {
-            return clientSecret;
+    private Long parseClientId(String id) {
+        try {
+            return Long.valueOf(id);
+        } catch (NumberFormatException ex) {
+            return null;
         }
-        if (clientSecret.startsWith("$2a$") || clientSecret.startsWith("$2b$") || clientSecret.startsWith("$2y$")) {
-            return clientSecret;
+    }
+
+    private Long getCurrentTenantId() {
+        String tenantId = TenantContext.getTenantId();
+        if (!StringUtils.hasText(tenantId)) {
+            return null;
         }
-        return passwordEncoder.encode(clientSecret);
+        try {
+            return Long.valueOf(tenantId);
+        } catch (NumberFormatException ex) {
+            return null;
+        }
     }
 
     private long resolveTtl(Integer ttl, long defaultValue) {
