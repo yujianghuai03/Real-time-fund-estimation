@@ -33,6 +33,7 @@
         <lombok.version>1.18.38</lombok.version>
         <springdoc.version>2.6.0</springdoc.version>
         <swagger.annotations.version>2.2.22</swagger.annotations.version>
+        <poi.version>5.2.5</poi.version>
     </properties>
 
     <dependencyManagement>
@@ -160,6 +161,11 @@
                 <groupId>io.swagger.core.v3</groupId>
                 <artifactId>swagger-annotations-jakarta</artifactId>
                 <version>${swagger.annotations.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.poi</groupId>
+                <artifactId>poi-ooxml</artifactId>
+                <version>${poi.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

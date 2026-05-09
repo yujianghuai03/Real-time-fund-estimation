@@ -432,6 +432,42 @@ SELECT 1, `id`, 1 FROM `sys_menu`
 WHERE `id` IN (2250, 2251, 2252, 2253, 2254, 2260, 2261, 2262, 2263, 2264, 2265, 2266)
 ON DUPLICATE KEY UPDATE `tenant_id` = VALUES(`tenant_id`);
 
+INSERT INTO `sys_menu` (`id`, `tenant_id`, `parent_id`, `menu_type`, `menu_scope`, `menu_name`, `permission`, `path`, `component`, `icon`, `method`, `api_path`, `sort_order`, `visible`, `status`)
+VALUES
+    (2270, 1, 2200, 'MENU', 'PORTAL', '交易记录管理', 'fund:transaction:view', '/transaction-record', 'fund/transaction-record/index', 'Tickets', NULL, NULL, 4, 1, 1),
+    (2271, 1, 2270, 'BUTTON', 'PORTAL', '交易记录新增', 'fund:transaction:add', NULL, NULL, NULL, NULL, NULL, 1, 0, 1),
+    (2272, 1, 2270, 'BUTTON', 'PORTAL', '交易记录修改', 'fund:transaction:edit', NULL, NULL, NULL, NULL, NULL, 2, 0, 1),
+    (2273, 1, 2270, 'BUTTON', 'PORTAL', '交易记录删除', 'fund:transaction:delete', NULL, NULL, NULL, NULL, NULL, 3, 0, 1),
+    (2274, 1, 2270, 'BUTTON', 'PORTAL', '交易确认', 'fund:transaction:confirm:view', NULL, NULL, NULL, NULL, NULL, 4, 0, 1),
+    (2275, 1, 2270, 'BUTTON', 'PORTAL', '交易撤销', 'fund:transaction:cancel:view', NULL, NULL, NULL, NULL, NULL, 5, 0, 1),
+    (2276, 1, 2270, 'BUTTON', 'PORTAL', '交易记录导出', 'fund:transaction:export:view', NULL, NULL, NULL, NULL, NULL, 6, 0, 1),
+    (2280, 1, 2270, 'API', 'PORTAL', '分页查询交易记录', 'fund:transaction:page', NULL, NULL, NULL, 'GET', '/transaction-record/page', 10, 0, 1),
+    (2281, 1, 2270, 'API', 'PORTAL', '查询交易记录详情', 'fund:transaction:detail', NULL, NULL, NULL, 'GET', '/transaction-record/{id}', 11, 0, 1),
+    (2282, 1, 2270, 'API', 'PORTAL', '新增交易记录', 'fund:transaction:create', NULL, NULL, NULL, 'POST', '/transaction-record', 12, 0, 1),
+    (2283, 1, 2270, 'API', 'PORTAL', '修改交易记录', 'fund:transaction:update', NULL, NULL, NULL, 'PUT', '/transaction-record/{id}', 13, 0, 1),
+    (2284, 1, 2270, 'API', 'PORTAL', '删除交易记录', 'fund:transaction:remove', NULL, NULL, NULL, 'DELETE', '/transaction-record/{id}', 14, 0, 1),
+    (2285, 1, 2270, 'API', 'PORTAL', '确认交易', 'fund:transaction:confirm', NULL, NULL, NULL, 'PUT', '/transaction-record/{id}/confirm', 15, 0, 1),
+    (2286, 1, 2270, 'API', 'PORTAL', '撤销交易', 'fund:transaction:cancel', NULL, NULL, NULL, 'PUT', '/transaction-record/{id}/cancel', 16, 0, 1),
+    (2287, 1, 2270, 'API', 'PORTAL', '导出交易记录', 'fund:transaction:export', NULL, NULL, NULL, 'GET', '/transaction-record/export', 17, 0, 1)
+ON DUPLICATE KEY UPDATE
+    `menu_name` = VALUES(`menu_name`),
+    `parent_id` = VALUES(`parent_id`),
+    `menu_type` = VALUES(`menu_type`),
+    `menu_scope` = VALUES(`menu_scope`),
+    `path` = VALUES(`path`),
+    `component` = VALUES(`component`),
+    `icon` = VALUES(`icon`),
+    `method` = VALUES(`method`),
+    `api_path` = VALUES(`api_path`),
+    `sort_order` = VALUES(`sort_order`),
+    `visible` = VALUES(`visible`),
+    `status` = VALUES(`status`);
+
+INSERT INTO `sys_role_menu` (`role_id`, `menu_id`, `tenant_id`)
+SELECT 1, `id`, 1 FROM `sys_menu`
+WHERE `id` IN (2270, 2271, 2272, 2273, 2274, 2275, 2276, 2280, 2281, 2282, 2283, 2284, 2285, 2286, 2287)
+ON DUPLICATE KEY UPDATE `tenant_id` = VALUES(`tenant_id`);
+
 INSERT INTO `sys_user_role` (`user_id`, `role_id`, `tenant_id`)
 VALUES (1, 1, 1)
 ON DUPLICATE KEY UPDATE `tenant_id` = VALUES(`tenant_id`);
