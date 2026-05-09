@@ -2,14 +2,13 @@ package com.yujianghuai.admin.controller;
 
 import java.security.SecureRandom;
 
+import com.yujianghuai.admin.dto.EmailVerificationCodeRequest;
 import com.yujianghuai.common.constant.EmailConstants;
 import com.yujianghuai.common.email.EmailService;
 import com.yujianghuai.common.web.R;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.util.StringUtils;
@@ -35,16 +34,14 @@ public class SysEmailController {
     /**
      * 发送邮箱验证码。
      *
-     * @param email 收件人邮箱
+     * @param request 邮箱验证码发送请求参数
      * @return 发送结果
      */
-    @GetMapping("/verification-code")
+    @PostMapping("/verification-code")
     @Operation(summary = "发送邮箱验证码", description = "生成六位数字验证码并发送到指定邮箱")
-    public R<Boolean> sendVerificationCode(
-            @Parameter(description = "收件人邮箱", required = true)
-            @NotBlank(message = "收件人邮箱不能为空")
-            @Email(message = "收件人邮箱格式不正确")
-            @RequestParam String email) {
+    public R<Boolean> sendVerificationCode(@Valid @RequestBody EmailVerificationCodeRequest request) {
+        String email = request.getEmail();
+
         if (hasCachedVerificationCode(email)) {
             return R.ok(Boolean.TRUE);
         }
