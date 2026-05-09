@@ -130,10 +130,6 @@ public class AuthorizationServerConfiguration {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/admin-api/email/verification-code").permitAll()
                         .requestMatchers(
-                                "/auth2/**",
-                                "/api/funds/search",
-                                "/api/funds/estimate/**",
-                                "/api/funds/indices",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
@@ -153,7 +149,7 @@ public class AuthorizationServerConfiguration {
                             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
                             response.getWriter().write("{\"code\":403,\"message\":\"" + SecurityConstants.AUTH_ACCESS_DENIED_MESSAGE + "\",\"data\":null}");
                         }))
-                .formLogin(Customizer.withDefaults())
+                .formLogin(AbstractHttpConfigurer::disable)
                 .oauth2ResourceServer(resourceServer -> resourceServer
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)))
                 .build();

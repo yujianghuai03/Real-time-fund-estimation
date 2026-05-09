@@ -516,7 +516,7 @@ INSERT INTO `sys_oauth_client` (
              '默认客户端',
              'none',
              'authorization_code,refresh_token,password,email_code',
-             'http://127.0.0.1:8080/login/oauth2/code/yujianghuai',
+             NULL,
              'openid,profile,api.read,api.write,email',
              7200,
              604800,
