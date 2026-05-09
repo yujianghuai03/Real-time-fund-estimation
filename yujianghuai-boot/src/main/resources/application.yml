@@ -37,6 +37,5 @@ app:
       - /api/funds/search
       - /api/funds/estimate/**
       - /api/funds/indices
-      - /admin-api/email/verification-code
     ignore-tables:
       - sys_tenant
