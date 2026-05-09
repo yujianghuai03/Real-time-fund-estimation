@@ -1,11 +1,11 @@
-# yujianghuai 脚手架
+# 基金实时预估系统
 
-这是一个 Spring Boot / Spring Cloud + Vue3 的全栈脚手架。后端支持默认 Boot 聚合启动，也可以通过 Maven profile 切换 Cloud 微服务模式；前端包含面向用户的前台门户和面向管理员的后台管理。
+这是一个基于 Spring Boot / Spring Cloud + Vue3 的基金实时预估系统。后端支持默认 Boot 聚合启动，也可以通过 Maven profile 切换 Cloud 微服务模式；前端使用 Vue3 + Vite + Element Plus 构建。
 
 ## 后端模块
 
 - `yujianghuai-common`：统一返回 `R`、全局异常、多租户 `TENANT-ID`、MyBatis-Plus、RedisTemplate、Feign、MQ 基础封装。
-- `yujianghuai-service`：业务服务模块，包含 `api / biz` 分层。
+- `yujianghuai-fund`：基金业务模块，包含 `yujianghuai-fund-api / yujianghuai-fund-biz` 分层。
 - `yujianghuai-auth`：认证模块，参考 `cfm-auth` 风格实现 OAuth2 Authorization Server、JWT、JWK、密码模式扩展、token 管理端点。
 - `yujianghuai-admin`：权限后台模块，提供用户、角色、菜单、角色授权等 RBAC 增删改查接口。
 - `yujianghuai-boot`：默认 Boot 聚合启动模块，一个进程整合业务和认证能力。
@@ -62,7 +62,7 @@ Cloud 启动顺序：
 mvn -s .mvn\local-settings.xml -Pcloud -pl yujianghuai-nacos spring-boot:run
 mvn -s .mvn\local-settings.xml -Pcloud -pl yujianghuai-auth spring-boot:run
 mvn -s .mvn\local-settings.xml -Pcloud -pl yujianghuai-admin spring-boot:run
-mvn -s .mvn\local-settings.xml -Pcloud -pl yujianghuai-service spring-boot:run -Dspring-boot.run.profiles=cloud
+mvn -s .mvn\local-settings.xml -Pcloud -pl yujianghuai-fund/yujianghuai-fund-biz spring-boot:run -Dspring-boot.run.profiles=cloud
 mvn -s .mvn\local-settings.xml -Pcloud -pl yujianghuai-gateway spring-boot:run
 ```
 
@@ -104,24 +104,20 @@ yujianghuai-ui
 
 结构：
 
-- `apps/portal`：前台页面，面向普通用户。
-- `apps/admin`：后台管理，面向管理员，包含权限管理菜单、用户管理、角色授权、菜单权限配置。
-- 后台管理已对接 `/oauth2/token` 和 `/admin-api/**`，本地开发通过 Vite proxy 转发到 `127.0.0.1:8080`。
-- `packages/shared`：共享权限菜单、类型和 HTTP 请求封装。
+- 当前为单应用 Vue3 + Vite + Element Plus 前端工程。
+- 后续可按业务需要拆分为前台门户、后台管理和共享包。
 
 启动：
 
 ```powershell
 cd yujianghuai-ui
 npm install
-npm run dev:portal
-npm run dev:admin
+npm run dev
 ```
 
 默认地址：
 
-- 前台门户：`http://127.0.0.1:5173`
-- 后台管理：`http://127.0.0.1:5174/admin/login`
+- 前端页面：`http://127.0.0.1:5173`
 
 构建：
 
