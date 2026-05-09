@@ -2,7 +2,7 @@
   <header class="app-header">
     <div class="app-header__brand" aria-label="基金智估">
       <span class="app-header__logo">
-        <img :src="fundLogoUrl" alt="基金智估 Logo" />
+        <img :src="fundLogoUrl" alt="基金智估 Logo"/>
       </span>
       <span class="app-header__brand-text">
         <strong>基金智估</strong>
@@ -11,32 +11,32 @@
     </div>
 
     <div
-      class="app-header__search"
-      :class="{ 'app-header__search--active': isSearchActive }"
-      role="search"
+        class="app-header__search"
+        :class="{ 'app-header__search--active': isSearchActive }"
+        role="search"
     >
       <el-icon class="app-header__search-icon" :size="18">
-        <Search />
+        <Search/>
       </el-icon>
       <input
-        v-model="keyword"
-        type="search"
-        placeholder="搜索基金名称或代码…"
-        aria-label="搜索基金名称或代码"
-        @focus="isSearchActive = true"
-        @blur="isSearchActive = false"
+          v-model="keyword"
+          type="search"
+          placeholder="搜索基金名称或代码…"
+          aria-label="搜索基金名称或代码"
+          @focus="isSearchActive = true"
+          @blur="isSearchActive = false"
       />
       <button
-        class="app-header__icon-button app-header__search-action"
-        type="button"
-        :aria-label="isSearchActive ? '添加基金' : '图像识别搜索'"
-        @mousedown.prevent
-        @click="handleSearchActionClick"
+          class="app-header__icon-button app-header__search-action"
+          type="button"
+          :aria-label="isSearchActive ? '添加基金' : '图像识别搜索'"
+          @mousedown.prevent
+          @click="handleSearchActionClick"
       >
         <Transition name="app-header__search-action-icon" mode="out-in">
           <el-icon :key="isSearchActive ? 'plus' : 'camera'" :size="18">
-            <Plus v-if="isSearchActive" />
-            <Camera v-else />
+            <Plus v-if="isSearchActive"/>
+            <Camera v-else/>
           </el-icon>
         </Transition>
       </button>
@@ -45,49 +45,49 @@
     <nav class="app-header__actions" aria-label="快捷功能">
       <button class="app-header__icon-button" type="button" aria-label="GitHub">
         <el-icon :size="18">
-          <Connection />
+          <Connection/>
         </el-icon>
       </button>
       <button class="app-header__icon-button" type="button" aria-label="刷新数据" @click="refreshHeader">
         <el-icon :size="18">
-          <RefreshRight />
+          <RefreshRight/>
         </el-icon>
       </button>
       <button
-        class="app-header__icon-button app-header__theme-button"
-        type="button"
-        :aria-label="`切换主题，当前为${currentThemeLabel}`"
-        :title="`当前主题：${currentThemeLabel}`"
-        @click="toggleTheme"
+          class="app-header__icon-button app-header__theme-button"
+          type="button"
+          :aria-label="`切换主题，当前为${currentThemeLabel}`"
+          :title="`当前主题：${currentThemeLabel}`"
+          @click="toggleTheme"
       >
         <el-icon :size="18">
-          <Moon v-if="isDarkTheme" />
-          <Sunny v-else />
+          <Moon v-if="isDarkTheme"/>
+          <Sunny v-else/>
         </el-icon>
       </button>
       <div ref="userMenuRef" class="app-header__user-menu">
         <button
-          class="app-header__avatar-button"
-          type="button"
-          :aria-label="isUserLoggedIn ? '已登录用户中心' : '未登录用户中心'"
-          :aria-expanded="isUserMenuVisible"
-          aria-haspopup="menu"
-          @click="toggleUserMenu"
+            class="app-header__avatar-button"
+            type="button"
+            :aria-label="isUserLoggedIn ? '已登录用户中心' : '未登录用户中心'"
+            :aria-expanded="isUserMenuVisible"
+            aria-haspopup="menu"
+            @click="toggleUserMenu"
         >
-          <img :src="userAvatarUrl" alt="用户头像" />
+          <img :src="userAvatarUrl" alt="用户头像"/>
         </button>
 
         <Transition name="app-header__user-dropdown">
           <div
-            v-if="isUserMenuVisible"
-            class="app-header__user-dropdown"
-            :class="{ 'app-header__user-dropdown--logged-in': isUserLoggedIn }"
-            role="menu"
-            :aria-label="isUserLoggedIn ? '已登录用户菜单' : '未登录用户菜单'"
+              v-if="isUserMenuVisible"
+              class="app-header__user-dropdown"
+              :class="{ 'app-header__user-dropdown--logged-in': isUserLoggedIn }"
+              role="menu"
+              :aria-label="isUserLoggedIn ? '已登录用户菜单' : '未登录用户菜单'"
           >
             <template v-if="isUserLoggedIn">
               <div class="app-header__user-profile" role="presentation">
-                <img :src="userAvatarUrl" alt="" />
+                <img :src="userAvatarUrl" alt=""/>
                 <div class="app-header__user-profile-copy">
                   <strong>{{ userProfile.email }}</strong>
                   <span class="app-header__user-status">已登录</span>
@@ -99,51 +99,51 @@
             </template>
 
             <button
-              v-if="!isUserLoggedIn"
-              class="app-header__user-menu-item"
-              type="button"
-              role="menuitem"
-              @click="openLoginDialog"
+                v-if="!isUserLoggedIn"
+                class="app-header__user-menu-item"
+                type="button"
+                role="menuitem"
+                @click="openLoginDialog"
             >
               <el-icon :size="16">
-                <Right />
+                <Right/>
               </el-icon>
               <span>登录</span>
             </button>
 
             <button class="app-header__user-menu-item" type="button" role="menuitem" @click="handleUserMenuAction">
               <el-icon :size="16">
-                <Calendar />
+                <Calendar/>
               </el-icon>
               <span>我的收益</span>
             </button>
             <button
-              v-if="isUserLoggedIn"
-              class="app-header__user-menu-item app-header__user-menu-item--sync"
-              type="button"
-              role="menuitem"
-              @click="handleUserMenuAction"
+                v-if="isUserLoggedIn"
+                class="app-header__user-menu-item app-header__user-menu-item--sync"
+                type="button"
+                role="menuitem"
+                @click="handleUserMenuAction"
             >
               <el-icon :size="16">
-                <Refresh />
+                <Refresh/>
               </el-icon>
               <span>同步</span>
             </button>
             <button class="app-header__user-menu-item" type="button" role="menuitem" @click="handleUserMenuAction">
               <el-icon :size="16">
-                <Setting />
+                <Setting/>
               </el-icon>
               <span>设置</span>
             </button>
             <button
-              v-if="isUserLoggedIn"
-              class="app-header__user-menu-item app-header__user-menu-item--danger"
-              type="button"
-              role="menuitem"
-              @click="handleLogout"
+                v-if="isUserLoggedIn"
+                class="app-header__user-menu-item app-header__user-menu-item--danger"
+                type="button"
+                role="menuitem"
+                @click="handleLogout"
             >
               <el-icon :size="16">
-                <SwitchButton />
+                <SwitchButton/>
               </el-icon>
               <span>登出</span>
             </button>
@@ -156,16 +156,16 @@
   <Teleport to="body">
     <Transition name="app-header__capture-dialog">
       <div
-        v-if="isCaptureDialogVisible"
-        class="app-header__capture-overlay"
-        role="presentation"
-        @click.self="closeCaptureDialog"
+          v-if="isCaptureDialogVisible"
+          class="app-header__capture-overlay"
+          role="presentation"
+          @click.self="closeCaptureDialog"
       >
         <section
-          class="app-header__capture-card"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="capture-dialog-title"
+            class="app-header__capture-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="capture-dialog-title"
         >
           <h2 id="capture-dialog-title">选择持仓截图</h2>
           <p>
@@ -178,19 +178,19 @@
             拖拽图片到此处，或点击选择
           </button>
           <input
-            ref="captureInputRef"
-            class="app-header__capture-input"
-            type="file"
-            accept="image/*"
-            multiple
+              ref="captureInputRef"
+              class="app-header__capture-input"
+              type="file"
+              accept="image/*"
+              multiple
           />
 
           <footer class="app-header__capture-actions">
             <button class="app-header__capture-button" type="button" @click="closeCaptureDialog">取消</button>
             <button
-              class="app-header__capture-button app-header__capture-button--primary"
-              type="button"
-              @click="triggerImageSelect"
+                class="app-header__capture-button app-header__capture-button--primary"
+                type="button"
+                @click="triggerImageSelect"
             >
               选择图片
             </button>
@@ -203,21 +203,21 @@
   <Teleport to="body">
     <Transition name="app-header__login-dialog">
       <div
-        v-if="isLoginDialogVisible"
-        class="app-header__login-overlay"
-        role="presentation"
-        @click.self="closeLoginDialog"
+          v-if="isLoginDialogVisible"
+          class="app-header__login-overlay"
+          role="presentation"
+          @click.self="closeLoginDialog"
       >
         <section class="app-header__login-card" role="dialog" aria-modal="true" aria-labelledby="login-dialog-title">
           <button class="app-header__login-close" type="button" aria-label="关闭登录弹窗" @click="closeLoginDialog">
             <el-icon :size="18">
-              <Close />
+              <Close/>
             </el-icon>
           </button>
 
           <div class="app-header__login-heading">
             <span class="app-header__login-logo">
-              <img :src="fundLogoUrl" alt="" />
+              <img :src="fundLogoUrl" alt=""/>
             </span>
             <div>
               <h2 id="login-dialog-title">{{ loginDialogTitle }}</h2>
@@ -227,20 +227,20 @@
 
           <div class="app-header__login-tabs" role="tablist" aria-label="账号操作">
             <button
-              type="button"
-              role="tab"
-              :aria-selected="loginMode === 'emailCode'"
-              :class="{ 'app-header__login-tab--active': loginMode === 'emailCode' }"
-              @click="setLoginMode('emailCode')"
+                type="button"
+                role="tab"
+                :aria-selected="loginMode === 'emailCode'"
+                :class="{ 'app-header__login-tab--active': loginMode === 'emailCode' }"
+                @click="setLoginMode('emailCode')"
             >
               验证码登录
             </button>
             <button
-              type="button"
-              role="tab"
-              :aria-selected="loginMode === 'register'"
-              :class="{ 'app-header__login-tab--active': loginMode === 'register' }"
-              @click="setLoginMode('register')"
+                type="button"
+                role="tab"
+                :aria-selected="loginMode === 'register'"
+                :class="{ 'app-header__login-tab--active': loginMode === 'register' }"
+                @click="setLoginMode('register')"
             >
               创建账号
             </button>
@@ -253,14 +253,14 @@
               <span>用户名</span>
               <div class="app-header__login-input" :class="{ 'app-header__login-input--invalid': formErrors.username }">
                 <el-icon :size="17">
-                  <User />
+                  <User/>
                 </el-icon>
                 <input
-                  v-model="loginForm.username"
-                  type="text"
-                  placeholder="用于账户显示"
-                  autocomplete="username"
-                  :aria-invalid="Boolean(formErrors.username)"
+                    v-model="loginForm.username"
+                    type="text"
+                    placeholder="用于账户显示"
+                    autocomplete="username"
+                    :aria-invalid="Boolean(formErrors.username)"
                 />
               </div>
               <small v-if="formErrors.username" class="app-header__login-error">{{ formErrors.username }}</small>
@@ -270,14 +270,14 @@
               <span>邮箱</span>
               <div class="app-header__login-input" :class="{ 'app-header__login-input--invalid': formErrors.email }">
                 <el-icon :size="17">
-                  <Message />
+                  <Message/>
                 </el-icon>
                 <input
-                  v-model="loginForm.email"
-                  type="email"
-                  placeholder="name@example.com"
-                  autocomplete="email"
-                  :aria-invalid="Boolean(formErrors.email)"
+                    v-model="loginForm.email"
+                    type="email"
+                    placeholder="name@example.com"
+                    autocomplete="email"
+                    :aria-invalid="Boolean(formErrors.email)"
                 />
               </div>
               <small v-if="formErrors.email" class="app-header__login-error">{{ formErrors.email }}</small>
@@ -287,14 +287,14 @@
               <span>密码</span>
               <div class="app-header__login-input" :class="{ 'app-header__login-input--invalid': formErrors.password }">
                 <el-icon :size="17">
-                  <Lock />
+                  <Lock/>
                 </el-icon>
                 <input
-                  v-model="loginForm.password"
-                  type="password"
-                  placeholder="至少 8 位密码"
-                  autocomplete="new-password"
-                  :aria-invalid="Boolean(formErrors.password)"
+                    v-model="loginForm.password"
+                    type="password"
+                    placeholder="至少 8 位密码"
+                    autocomplete="new-password"
+                    :aria-invalid="Boolean(formErrors.password)"
                 />
               </div>
               <small v-if="formErrors.password" class="app-header__login-error">{{ formErrors.password }}</small>
@@ -305,23 +305,23 @@
               <div class="app-header__login-code-row">
                 <div class="app-header__login-input" :class="{ 'app-header__login-input--invalid': formErrors.code }">
                   <el-icon :size="17">
-                    <Lock />
+                    <Lock/>
                   </el-icon>
                   <input
-                    v-model="loginForm.code"
-                    type="text"
-                    placeholder="6 位验证码"
-                    inputmode="numeric"
-                    maxlength="8"
-                    autocomplete="one-time-code"
-                    :aria-invalid="Boolean(formErrors.code)"
+                      v-model="loginForm.code"
+                      type="text"
+                      placeholder="6 位验证码"
+                      inputmode="numeric"
+                      maxlength="8"
+                      autocomplete="one-time-code"
+                      :aria-invalid="Boolean(formErrors.code)"
                   />
                 </div>
                 <button
-                  class="app-header__login-code-button"
-                  type="button"
-                  :disabled="isVerificationCodeButtonDisabled"
-                  @click="handleSendVerificationCode"
+                    class="app-header__login-code-button"
+                    type="button"
+                    :disabled="isVerificationCodeButtonDisabled"
+                    @click="handleSendVerificationCode"
                 >
                   {{ verificationCodeButtonText }}
                 </button>
@@ -330,30 +330,34 @@
             </label>
 
             <p class="app-header__login-hint">
-              {{ loginMode === 'register' ? '创建成功后将自动登录，并继续同步账户数据。' : '验证码发送成功后 60 秒内不可重复发送。' }}
+              {{
+                loginMode === 'register' ? '创建成功后将自动登录，并继续同步账户数据。' : '验证码发送成功后 60 秒内不可重复发送。'
+              }}
             </p>
 
             <details class="app-header__login-advanced">
               <summary>高级设置</summary>
               <label class="app-header__login-field">
                 <span>租户 ID</span>
-                <div class="app-header__login-input" :class="{ 'app-header__login-input--invalid': formErrors.tenantId }">
+                <div class="app-header__login-input"
+                     :class="{ 'app-header__login-input--invalid': formErrors.tenantId }">
                   <el-icon :size="17">
-                    <Setting />
+                    <Setting/>
                   </el-icon>
                   <input
-                    v-model="loginForm.tenantId"
-                    type="text"
-                    placeholder="默认 1"
-                    autocomplete="organization"
-                    :aria-invalid="Boolean(formErrors.tenantId)"
+                      v-model="loginForm.tenantId"
+                      type="text"
+                      placeholder="默认 1"
+                      autocomplete="organization"
+                      :aria-invalid="Boolean(formErrors.tenantId)"
                   />
                 </div>
                 <small v-if="formErrors.tenantId" class="app-header__login-error">{{ formErrors.tenantId }}</small>
               </label>
             </details>
 
-            <button class="app-header__login-submit" type="submit" :disabled="isLoginSubmitting || isSendingVerificationCode">
+            <button class="app-header__login-submit" type="submit"
+                    :disabled="isLoginSubmitting || isSendingVerificationCode">
               {{ loginSubmitText }}
             </button>
           </form>
@@ -375,8 +379,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, watch, ref } from 'vue'
-import { ElMessage } from 'element-plus'
+import {computed, onBeforeUnmount, onMounted, watch, ref} from 'vue'
+import {ElMessage} from 'element-plus'
 import {
   Calendar,
   Camera,
@@ -396,10 +400,10 @@ import {
   User,
 } from '@element-plus/icons-vue'
 
-import { loginByEmailCode, registerByEmailCode, sendEmailVerificationCode } from '@/api/auth'
+import {loginByEmailCode, registerByEmailCode, sendEmailVerificationCode} from '@/api/auth'
 import fundLogoUrl from '@/assets/logo/fund-logo.svg'
 import userAvatarUrl from '@/assets/logo/user-avatar.svg'
-import { useTheme } from '@/composables/useTheme'
+import {useTheme} from '@/composables/useTheme'
 import {
   clearAuthSession,
   getStoredAuthSession,
@@ -417,10 +421,10 @@ const storedSession = getStoredAuthSession()
 const isUserLoggedIn = ref(Boolean(storedSession))
 const captureInputRef = ref<HTMLInputElement | null>(null)
 const userMenuRef = ref<HTMLElement | null>(null)
-const { currentThemeLabel, isDarkTheme, toggleTheme } = useTheme()
+const {currentThemeLabel, isDarkTheme, toggleTheme} = useTheme()
 const userProfile = ref({
   email: storedSession?.email || '未登录',
-  syncedAt: storedSession ? new Date().toLocaleString('zh-CN', { hour12: false }).slice(5, 16) : '--',
+  syncedAt: storedSession ? new Date().toLocaleString('zh-CN', {hour12: false}).slice(5, 16) : '--',
 })
 type LoginMode = 'emailCode' | 'register'
 
@@ -521,7 +525,7 @@ const clearFormFeedback = (): void => {
 }
 
 const requireTenantAndEmail = (): { tenantId: string; email: string } | null => {
-  const { tenantId, email } = normalizeLoginForm()
+  const {tenantId, email} = normalizeLoginForm()
   const nextErrors: LoginFormErrors = {}
 
   if (!tenantId) {
@@ -570,7 +574,7 @@ const markLoginSuccess = (email: string): void => {
   isUserLoggedIn.value = true
   userProfile.value = {
     email,
-    syncedAt: new Date().toLocaleString('zh-CN', { hour12: false }).slice(5, 16),
+    syncedAt: new Date().toLocaleString('zh-CN', {hour12: false}).slice(5, 16),
   }
   closeLoginDialog()
   closeUserMenu()
@@ -648,6 +652,15 @@ const openLoginDialog = (): void => {
   isLoginDialogVisible.value = true
 }
 
+const handleLoginRequired = (): void => {
+  isUserLoggedIn.value = false
+  userProfile.value = {
+    email: '未登录',
+    syncedAt: '--',
+  }
+  openLoginDialog()
+}
+
 const handleLoginSubmit = async (): Promise<void> => {
   clearFormFeedback()
   const normalizedForm = normalizeLoginForm()
@@ -683,24 +696,24 @@ const handleLoginSubmit = async (): Promise<void> => {
 
   try {
     const registerResponse =
-      loginMode.value === 'register'
-        ? await registerByEmailCode({
-            tenantId: payload.tenantId,
-            username: normalizedForm.username,
-            email: payload.email,
-            password: normalizedForm.password,
-            code: normalizedForm.code,
-          })
-        : null
+        loginMode.value === 'register'
+            ? await registerByEmailCode({
+              tenantId: payload.tenantId,
+              username: normalizedForm.username,
+              email: payload.email,
+              password: normalizedForm.password,
+              code: normalizedForm.code,
+            })
+            : null
 
     const tokenResponse = registerResponse?.access_token
-      ? {
+        ? {
           access_token: registerResponse.access_token,
           token_type: registerResponse.token_type,
           expires_in: registerResponse.expires_in,
           scope: registerResponse.scope,
         }
-      : await loginByEmailCode({
+        : await loginByEmailCode({
           tenantId: payload.tenantId,
           email: payload.email,
           code: normalizedForm.code,
@@ -738,15 +751,15 @@ const handleGlobalPointerdown = (event: PointerEvent): void => {
 }
 
 watch(
-  () => isCaptureDialogVisible.value || isLoginDialogVisible.value || isUserMenuVisible.value,
-  (isVisible) => {
-    if (isVisible) {
-      window.addEventListener('keydown', handleGlobalKeydown)
-      return
-    }
+    () => isCaptureDialogVisible.value || isLoginDialogVisible.value || isUserMenuVisible.value,
+    (isVisible) => {
+      if (isVisible) {
+        window.addEventListener('keydown', handleGlobalKeydown)
+        return
+      }
 
-    window.removeEventListener('keydown', handleGlobalKeydown)
-  }
+      window.removeEventListener('keydown', handleGlobalKeydown)
+    }
 )
 
 watch(isUserMenuVisible, (isVisible) => {
@@ -758,7 +771,12 @@ watch(isUserMenuVisible, (isVisible) => {
   document.removeEventListener('pointerdown', handleGlobalPointerdown)
 })
 
+onMounted(() => {
+  window.addEventListener('auth:login-required', handleLoginRequired)
+})
+
 onBeforeUnmount(() => {
+  window.removeEventListener('auth:login-required', handleLoginRequired)
   window.removeEventListener('keydown', handleGlobalKeydown)
   document.removeEventListener('pointerdown', handleGlobalPointerdown)
 
@@ -805,10 +823,9 @@ const refreshHeader = (): void => {
     content: "";
     z-index: 0;
     border-radius: inherit;
-    background:
-      linear-gradient(120deg, rgba(var(--text-color-rgb), 0.1), transparent 34%),
-      radial-gradient(circle at 38% 20%, rgba(var(--primary-color-rgb), 0.18), transparent 26%),
-      radial-gradient(circle at 72% 70%, rgba(var(--primary-color-rgb), 0.1), transparent 24%);
+    background: linear-gradient(120deg, rgba(var(--text-color-rgb), 0.1), transparent 34%),
+    radial-gradient(circle at 38% 20%, rgba(var(--primary-color-rgb), 0.18), transparent 26%),
+    radial-gradient(circle at 72% 70%, rgba(var(--primary-color-rgb), 0.1), transparent 24%);
     opacity: 0.9;
   }
 
@@ -878,19 +895,17 @@ const refreshHeader = (): void => {
   background: var(--input-bg);
   box-shadow: inset 0 1px 0 rgba(var(--text-color-rgb), 0.08), 0 10px 24px var(--shadow-color);
   backdrop-filter: blur(16px);
-  transition:
-    width 240ms ease,
-    border-color 180ms ease,
-    background-color 180ms ease,
-    box-shadow 180ms ease;
+  transition: width 240ms ease,
+  border-color 180ms ease,
+  background-color 180ms ease,
+  box-shadow 180ms ease;
 
   &:focus-within {
     border-color: rgba(var(--primary-color-rgb), 0.42);
     background: var(--card-bg-strong);
-    box-shadow:
-      inset 0 1px 0 rgba(var(--text-color-rgb), 0.1),
-      0 0 0 4px var(--focus-ring),
-      0 10px 24px var(--shadow-color);
+    box-shadow: inset 0 1px 0 rgba(var(--text-color-rgb), 0.1),
+    0 0 0 4px var(--focus-ring),
+    0 10px 24px var(--shadow-color);
   }
 
   input {
@@ -935,11 +950,10 @@ const refreshHeader = (): void => {
   border: 1px solid var(--border-color-strong);
   border-radius: 18px;
   box-shadow: var(--shadow-card), 0 0 0 1px rgba(var(--text-color-rgb), 0.02);
-  transition:
-    background-color 0.3s ease,
-    color 0.3s ease,
-    border-color 0.3s ease,
-    box-shadow 0.3s ease;
+  transition: background-color 0.3s ease,
+  color 0.3s ease,
+  border-color 0.3s ease,
+  box-shadow 0.3s ease;
 
   h2 {
     margin: 0 0 14px;
@@ -973,10 +987,9 @@ const refreshHeader = (): void => {
   color: var(--text-muted);
   background: rgba(var(--text-color-rgb), 0.018);
   cursor: pointer;
-  transition:
-    border-color 180ms ease,
-    background-color 180ms ease,
-    color 180ms ease;
+  transition: border-color 180ms ease,
+  background-color 180ms ease,
+  color 180ms ease;
 
   &:hover {
     color: var(--text-color);
@@ -1007,12 +1020,11 @@ const refreshHeader = (): void => {
   cursor: pointer;
   font-size: 15px;
   font-weight: 700;
-  transition:
-    transform 180ms ease,
-    border-color 180ms ease,
-    background-color 180ms ease,
-    box-shadow 180ms ease,
-    color 180ms ease;
+  transition: transform 180ms ease,
+  border-color 180ms ease,
+  background-color 180ms ease,
+  box-shadow 180ms ease,
+  color 180ms ease;
 
   &:hover {
     border-color: rgba(var(--primary-color-rgb), 0.34);
@@ -1033,9 +1045,8 @@ const refreshHeader = (): void => {
   transition: opacity 180ms ease;
 
   .app-header__capture-card {
-    transition:
-      opacity 180ms ease,
-      transform 180ms ease;
+    transition: opacity 180ms ease,
+    transform 180ms ease;
   }
 }
 
@@ -1086,11 +1097,10 @@ const refreshHeader = (): void => {
   color: var(--text-muted);
   background: var(--button-bg);
   cursor: pointer;
-  transition:
-    color 160ms ease,
-    border-color 160ms ease,
-    background-color 160ms ease,
-    transform 160ms ease;
+  transition: color 160ms ease,
+  border-color 160ms ease,
+  background-color 160ms ease,
+  transform 160ms ease;
 
   &:hover,
   &:focus-visible {
@@ -1163,10 +1173,9 @@ const refreshHeader = (): void => {
     cursor: pointer;
     font-size: 13px;
     font-weight: 800;
-    transition:
-      color 160ms ease,
-      background-color 160ms ease,
-      box-shadow 160ms ease;
+    transition: color 160ms ease,
+    background-color 160ms ease,
+    box-shadow 160ms ease;
 
     &:focus-visible {
       outline: 0;
@@ -1201,11 +1210,10 @@ const refreshHeader = (): void => {
   cursor: pointer;
   font-size: 13px;
   font-weight: 800;
-  transition:
-    color 160ms ease,
-    border-color 160ms ease,
-    background-color 160ms ease,
-    transform 160ms ease;
+  transition: color 160ms ease,
+  border-color 160ms ease,
+  background-color 160ms ease,
+  transform 160ms ease;
 
   &:hover,
   &:focus-visible {
@@ -1255,10 +1263,9 @@ const refreshHeader = (): void => {
   color: var(--text-muted);
   background: var(--input-bg);
   box-shadow: inset 0 1px 0 rgba(var(--text-color-rgb), 0.06);
-  transition:
-    border-color 160ms ease,
-    background-color 160ms ease,
-    box-shadow 160ms ease;
+  transition: border-color 160ms ease,
+  background-color 160ms ease,
+  box-shadow 160ms ease;
 
   &:focus-within {
     border-color: rgba(var(--primary-color-rgb), 0.42);
@@ -1355,9 +1362,8 @@ const refreshHeader = (): void => {
   cursor: pointer;
   font-size: 15px;
   font-weight: 800;
-  transition:
-    filter 160ms ease,
-    transform 160ms ease;
+  transition: filter 160ms ease,
+  transform 160ms ease;
 
   &:hover,
   &:focus-visible {
@@ -1409,10 +1415,9 @@ const refreshHeader = (): void => {
     cursor: pointer;
     font-size: 13px;
     font-weight: 700;
-    transition:
-      border-color 160ms ease,
-      background-color 160ms ease,
-      transform 160ms ease;
+    transition: border-color 160ms ease,
+    background-color 160ms ease,
+    transform 160ms ease;
 
     &:hover,
     &:focus-visible {
@@ -1448,9 +1453,8 @@ const refreshHeader = (): void => {
   transition: opacity 180ms ease;
 
   .app-header__login-card {
-    transition:
-      opacity 180ms ease,
-      transform 180ms ease;
+    transition: opacity 180ms ease,
+    transform 180ms ease;
   }
 }
 
@@ -1487,12 +1491,11 @@ const refreshHeader = (): void => {
   box-shadow: inset 0 1px 0 rgba(var(--text-color-rgb), 0.08);
   backdrop-filter: blur(14px);
   cursor: pointer;
-  transition:
-    transform 180ms ease,
-    border-color 180ms ease,
-    background-color 180ms ease,
-    box-shadow 180ms ease,
-    color 180ms ease;
+  transition: transform 180ms ease,
+  border-color 180ms ease,
+  background-color 180ms ease,
+  box-shadow 180ms ease,
+  color 180ms ease;
 
   &:hover {
     color: var(--text-color);
@@ -1523,9 +1526,8 @@ const refreshHeader = (): void => {
 
 .app-header__search-action-icon-enter-active,
 .app-header__search-action-icon-leave-active {
-  transition:
-    opacity 140ms ease,
-    transform 140ms ease;
+  transition: opacity 140ms ease,
+  transform 140ms ease;
 }
 
 .app-header__search-action-icon-enter-from,
@@ -1642,9 +1644,8 @@ const refreshHeader = (): void => {
   font-size: 14px;
   line-height: 1;
   text-align: left;
-  transition:
-    background-color 160ms ease,
-    color 160ms ease;
+  transition: background-color 160ms ease,
+  color 160ms ease;
 
   .el-icon {
     color: var(--text-color);
@@ -1682,9 +1683,8 @@ const refreshHeader = (): void => {
 
 .app-header__user-dropdown-enter-active,
 .app-header__user-dropdown-leave-active {
-  transition:
-    opacity 160ms ease,
-    transform 160ms ease;
+  transition: opacity 160ms ease,
+  transform 160ms ease;
 }
 
 .app-header__user-dropdown-enter-from,

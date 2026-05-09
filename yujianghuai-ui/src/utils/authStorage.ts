@@ -1,5 +1,6 @@
 export interface OAuthTokenResponse {
   access_token: string
+  refresh_token?: string
   token_type?: string
   expires_in?: number
   scope?: string
@@ -14,6 +15,7 @@ export interface AuthSession {
 }
 
 const ACCESS_TOKEN_KEY = 'accessToken'
+const REFRESH_TOKEN_KEY = 'refreshToken'
 const TOKEN_TYPE_KEY = 'tokenType'
 const TENANT_ID_KEY = 'tenantId'
 const USER_EMAIL_KEY = 'userEmail'
@@ -58,13 +60,33 @@ export const getStoredTenantId = (): string => {
 }
 
 export const getStoredAccessToken = (): string => {
-  return window.localStorage.getItem(ACCESS_TOKEN_KEY) || ''
+  const token = window.localStorage.getItem(ACCESS_TOKEN_KEY)?.trim()
+
+  if (!token || token === 'null' || token === 'undefined') {
+    return ''
+  }
+
+  return token
+}
+
+export const isTokenExpired = (token: string): boolean => {
+  if (!token || token === 'null' || token === 'undefined') {
+    return true
+  }
+
+  const payload = parseJwtPayload(token)
+
+  if (!payload.exp) {
+    return true
+  }
+
+  return payload.exp * 1000 <= Date.now()
 }
 
 export const getStoredAuthorization = (): string => {
   const token = getStoredAccessToken()
 
-  if (!token) {
+  if (!token || isTokenExpired(token)) {
     return ''
   }
 
@@ -91,6 +113,9 @@ export const saveOAuthToken = (
   const expiresAt = payload.exp ? payload.exp * 1000 : Date.now() + (tokenResponse.expires_in || 7200) * 1000
 
   window.localStorage.setItem(ACCESS_TOKEN_KEY, tokenResponse.access_token)
+  if (tokenResponse.refresh_token) {
+    window.localStorage.setItem(REFRESH_TOKEN_KEY, tokenResponse.refresh_token)
+  }
   window.localStorage.setItem(TOKEN_TYPE_KEY, tokenType)
   window.localStorage.setItem(TENANT_ID_KEY, resolvedTenantId)
   window.localStorage.setItem(USER_EMAIL_KEY, email)
@@ -113,7 +138,7 @@ export const getStoredAuthSession = (): AuthSession | null => {
   }
 
   const expiresAt = Number(window.localStorage.getItem(EXPIRES_AT_KEY) || 0)
-  if (expiresAt && expiresAt <= Date.now()) {
+  if (isTokenExpired(accessToken) || (expiresAt && expiresAt <= Date.now())) {
     return null
   }
 
@@ -128,6 +153,7 @@ export const getStoredAuthSession = (): AuthSession | null => {
 
 export const clearAuthSession = (): void => {
   window.localStorage.removeItem(ACCESS_TOKEN_KEY)
+  window.localStorage.removeItem(REFRESH_TOKEN_KEY)
   window.localStorage.removeItem(TOKEN_TYPE_KEY)
   window.localStorage.removeItem(USER_EMAIL_KEY)
   window.localStorage.removeItem(EXPIRES_AT_KEY)

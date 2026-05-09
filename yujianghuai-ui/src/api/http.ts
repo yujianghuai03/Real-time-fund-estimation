@@ -1,4 +1,10 @@
-import { getStoredAuthorization, getStoredTenantId } from '@/utils/authStorage'
+import {
+  clearAuthSession,
+  getStoredAccessToken,
+  getStoredAuthorization,
+  getStoredTenantId,
+  isTokenExpired,
+} from '@/utils/authStorage'
 
 export class ApiError extends Error {
   constructor(
@@ -41,6 +47,31 @@ const parseResponse = async (response: Response): Promise<unknown> => {
   }
 }
 
+const PUBLIC_AUTH_PATHS = ['/auth2', '/oauth2']
+const PUBLIC_AUTH_EXACT_PATHS = ['/admin-api/email/verification-code']
+
+const resolveRequestPath = (url: string): string => {
+  try {
+    return new URL(url, window.location.origin).pathname
+  } catch {
+    return url.split('?')[0] || url
+  }
+}
+
+const isPublicAuthRequest = (url: string): boolean => {
+  const path = resolveRequestPath(url)
+
+  return (
+    PUBLIC_AUTH_EXACT_PATHS.includes(path) ||
+    PUBLIC_AUTH_PATHS.some((publicPath) => path === publicPath || path.startsWith(`${publicPath}/`))
+  )
+}
+
+const redirectToLogin = (): void => {
+  clearAuthSession()
+  window.dispatchEvent(new CustomEvent('auth:login-required'))
+}
+
 const resolveErrorMessage = (payload: unknown, fallback: string): string => {
   if (isRecord(payload)) {
     const message = payload.message || payload.error_description || payload.error
@@ -52,10 +83,26 @@ const resolveErrorMessage = (payload: unknown, fallback: string): string => {
 
 export const request = async <T>(url: string, options: RequestOptions = {}): Promise<T> => {
   const headers = new Headers(options.headers)
-  const authorization = getStoredAuthorization()
   const tenantId = options.tenantId || getStoredTenantId()
+  const isPublicRequest = isPublicAuthRequest(url)
 
-  if (authorization) {
+  headers.delete('Authorization')
+
+  if (!isPublicRequest) {
+    const accessToken = getStoredAccessToken()
+
+    if (!accessToken || isTokenExpired(accessToken)) {
+      redirectToLogin()
+      throw new ApiError('登录已过期，请重新登录', 401)
+    }
+
+    const authorization = getStoredAuthorization()
+
+    if (!authorization) {
+      redirectToLogin()
+      throw new ApiError('登录已过期，请重新登录', 401)
+    }
+
     headers.set('Authorization', authorization)
   }
 
