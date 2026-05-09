@@ -494,16 +494,15 @@ WHERE `tenant_id` = 1
 ON DUPLICATE KEY UPDATE `tenant_id` = VALUES(`tenant_id`);
 
 INSERT INTO `sys_oauth_client` (
-    `id`, `tenant_id`, `client_id`, `client_secret`, `client_name`, `client_authentication_methods`,
+    `id`, `tenant_id`, `client_id`, `client_name`, `client_authentication_methods`,
     `authorization_grant_types`, `redirect_uris`, `scopes`, `access_token_ttl`, `refresh_token_ttl`,
     `require_authorization_consent`, `reuse_refresh_tokens`, `status`
 ) VALUES (
     1,
     1,
     'yujianghuai-client',
-    'yujianghuai-secret',
     '默认客户端',
-    'client_secret_basic,client_secret_post',
+    'none,client_secret_post',
     'authorization_code,refresh_token,client_credentials,password,email_code',
     'http://127.0.0.1:8080/login/oauth2/code/yujianghuai',
     'openid,profile,api.read,api.write,email',
