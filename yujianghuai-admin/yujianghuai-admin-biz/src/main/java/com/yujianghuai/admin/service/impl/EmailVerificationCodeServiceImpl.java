@@ -28,9 +28,11 @@ import java.util.Locale;
 @Service
 @RequiredArgsConstructor
 public class EmailVerificationCodeServiceImpl implements EmailVerificationCodeService {
+
     private final EmailService emailService;
     private final EmailProperties emailProperties;
     private final StringRedisTemplate stringRedisTemplate;
+
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
     private static final int VERIFICATION_CODE_BOUND = 1_000_000;
     private static final String UNKNOWN_IP = "unknown";
@@ -41,63 +43,52 @@ public class EmailVerificationCodeServiceImpl implements EmailVerificationCodeSe
             end
             return current
             """, Long.class);
+
     @Override
     public R<Boolean> sendVerificationCode(EmailVerificationCodeRequest request,
-                                        HttpServletRequest servletRequest) {
+                                           HttpServletRequest servletRequest) {
         String tenantId = TenantContext.getRequiredTenantId();
         String email = request.getEmail().trim().toLowerCase(Locale.ROOT);
         String clientIp = getClientIp(servletRequest);
 
-        if (isIpLimited(tenantId, clientIp)) {
+        if (increaseAndCheckIpLimit(tenantId, clientIp)) {
             return R.fail("当前IP请求过于频繁，请稍后再试");
         }
 
-        if (isInCooldown(tenantId, email)) {
+        if (!tryAcquireEmailCooldown(tenantId, email)) {
             return R.fail("验证码发送过于频繁，请60秒后再试");
         }
-        recordIpLimit(tenantId, clientIp);
+
         String code = generateSixDigitCode();
         emailService.sendVerificationCode(email, code);
         cacheVerificationCode(tenantId, email, code);
-        cacheCooldown(tenantId, email);
         return R.ok(true);
     }
+
     /**
-     * 判断当前IP是否达到限流阈值。
+     * 递增IP限流计数并判断是否达到阈值。
      *
      * @param tenantId 租户ID
      * @param clientIp 客户端IP
      * @return 是否达到限流阈值
      */
-    private boolean isIpLimited(String tenantId, String clientIp) {
+    private boolean increaseAndCheckIpLimit(String tenantId, String clientIp) {
         EmailProperties.VerificationCodeLimit limit = emailProperties.getVerificationCodeLimit();
         if (limit == null || !Boolean.TRUE.equals(limit.getIpEnabled())) {
             return false;
         }
 
-        String minuteKey = EmailConstants.verificationCodeIpMinuteLimitKey(tenantId, clientIp);
-        String hourKey = EmailConstants.verificationCodeIpHourLimitKey(tenantId, clientIp);
+        Long minuteCount = increaseWithTtl(
+                EmailConstants.verificationCodeIpMinuteLimitKey(tenantId, clientIp),
+                EmailConstants.VERIFICATION_CODE_IP_MINUTE_LIMIT_TTL
+        );
+        Long hourCount = increaseWithTtl(
+                EmailConstants.verificationCodeIpHourLimitKey(tenantId, clientIp),
+                EmailConstants.VERIFICATION_CODE_IP_HOUR_LIMIT_TTL
+        );
 
-        return getRedisCount(minuteKey) >= safeLimit(limit.getIpMinuteLimit())
-                || getRedisCount(hourKey) >= safeLimit(limit.getIpHourLimit());
-    }
-
-    /**
-     * 记录IP限流次数。
-     *
-     * @param tenantId 租户ID
-     * @param clientIp 客户端IP
-     */
-    private void recordIpLimit(String tenantId, String clientIp) {
-        EmailProperties.VerificationCodeLimit limit = emailProperties.getVerificationCodeLimit();
-        if (limit == null || !Boolean.TRUE.equals(limit.getIpEnabled())) {
-            return;
-        }
-
-        increaseWithTtl(EmailConstants.verificationCodeIpMinuteLimitKey(tenantId, clientIp),
-                EmailConstants.VERIFICATION_CODE_IP_MINUTE_LIMIT_TTL);
-        increaseWithTtl(EmailConstants.verificationCodeIpHourLimitKey(tenantId, clientIp),
-                EmailConstants.VERIFICATION_CODE_IP_HOUR_LIMIT_TTL);
+        return safeCount(minuteCount) > safeLimit(limit.getIpMinuteLimit())
+                || safeCount(hourCount) > safeLimit(limit.getIpHourLimit());
     }
 
     /**
@@ -105,9 +96,10 @@ public class EmailVerificationCodeServiceImpl implements EmailVerificationCodeSe
      *
      * @param redisKey Redis Key
      * @param ttl 过期时间
+     * @return 自增后的计数值
      */
-    private void increaseWithTtl(String redisKey, Duration ttl) {
-        stringRedisTemplate.execute(
+    private Long increaseWithTtl(String redisKey, Duration ttl) {
+        return stringRedisTemplate.execute(
                 INCREMENT_WITH_EXPIRE_SCRIPT,
                 Collections.singletonList(redisKey),
                 String.valueOf(ttl.toSeconds())
@@ -115,21 +107,13 @@ public class EmailVerificationCodeServiceImpl implements EmailVerificationCodeSe
     }
 
     /**
-     * 获取Redis计数。
+     * 获取安全计数值。
      *
-     * @param redisKey Redis Key
+     * @param value Redis返回值
      * @return 计数值
      */
-    private int getRedisCount(String redisKey) {
-        String value = stringRedisTemplate.opsForValue().get(redisKey);
-        if (!StringUtils.hasText(value)) {
-            return 0;
-        }
-        try {
-            return Integer.parseInt(value);
-        } catch (NumberFormatException ex) {
-            return 0;
-        }
+    private long safeCount(Long value) {
+        return value == null ? 0L : value;
     }
 
     /**
@@ -143,15 +127,17 @@ public class EmailVerificationCodeServiceImpl implements EmailVerificationCodeSe
     }
 
     /**
-     * 判断当前邮箱是否处于发送冷却中。
+     * 尝试获取邮箱验证码发送冷却锁。
      *
      * @param tenantId 租户ID
      * @param email 邮箱
-     * @return 是否处于冷却中
+     * @return 是否获取成功
      */
-    private boolean isInCooldown(String tenantId, String email) {
+    private boolean tryAcquireEmailCooldown(String tenantId, String email) {
         String redisKey = EmailConstants.verificationCodeCooldownKey(tenantId, email);
-        return StringUtils.hasText(stringRedisTemplate.opsForValue().get(redisKey));
+        Boolean success = stringRedisTemplate.opsForValue()
+                .setIfAbsent(redisKey, "1", EmailConstants.VERIFICATION_CODE_COOLDOWN_TTL);
+        return Boolean.TRUE.equals(success);
     }
 
     /**
@@ -164,17 +150,6 @@ public class EmailVerificationCodeServiceImpl implements EmailVerificationCodeSe
     private void cacheVerificationCode(String tenantId, String email, String code) {
         String redisKey = EmailConstants.verificationCodeKey(tenantId, email);
         stringRedisTemplate.opsForValue().set(redisKey, code, EmailConstants.VERIFICATION_CODE_TTL);
-    }
-
-    /**
-     * 缓存发送冷却状态。
-     *
-     * @param tenantId 租户ID
-     * @param email 邮箱
-     */
-    private void cacheCooldown(String tenantId, String email) {
-        String redisKey = EmailConstants.verificationCodeCooldownKey(tenantId, email);
-        stringRedisTemplate.opsForValue().set(redisKey, "1", EmailConstants.VERIFICATION_CODE_COOLDOWN_TTL);
     }
 
     /**
@@ -197,13 +172,15 @@ public class EmailVerificationCodeServiceImpl implements EmailVerificationCodeSe
         }
         return StringUtils.hasText(remoteAddr) ? remoteAddr : UNKNOWN_IP;
     }
-    private boolean isTrustedProxy(String remoteAddr){
+
+    private boolean isTrustedProxy(String remoteAddr) {
         EmailProperties.VerificationCodeLimit limit = emailProperties.getVerificationCodeLimit();
         if (limit == null || !Boolean.TRUE.equals(limit.getIpEnabled())) {
             return false;
         }
         return limit.getTrustedProxies() != null && limit.getTrustedProxies().contains(remoteAddr);
     }
+
     /**
      * 获取第一个有效IP。
      *
