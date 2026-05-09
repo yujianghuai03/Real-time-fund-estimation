@@ -39,11 +39,13 @@ const buildTokenBody = (params: Record<string, string>) => {
 }
 
 export const sendEmailVerificationCode = (email: string, tenantId: string): Promise<boolean> => {
-  const params = new URLSearchParams({ email })
-
-  return request<boolean>(`/admin-api/email/verification-code?${params.toString()}`, {
-    method: 'GET',
-    tenantId
+  return request<boolean>('/admin-api/email/verification-code', {
+    method: 'POST',
+    tenantId,
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ email })
   })
 }
 
