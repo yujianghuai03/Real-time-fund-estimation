@@ -1,0 +1,24 @@
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${MYSQL_URL}
+    username: ${MYSQL_USERNAME}
+    password: ${MYSQL_PASSWORD}
+
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT:6379}
+      database: ${REDIS_DATABASE:0}
+      password: ${REDIS_PASSWORD:}
+
+# 生产环境配置
+mybatis-plus:
+  configuration:
+    # 生产环境禁止输出 SQL 到控制台
+    log-impl: ''
+
+app:
+  exception:
+    # 生产环境禁止打印业务异常完整堆栈
+    print-business-stack-trace: false

@@ -1,0 +1,24 @@
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${MYSQL_URL:jdbc:mysql://127.0.0.1:3306/yujianghuai?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai}
+    username: ${MYSQL_USERNAME:root}
+    password: ${MYSQL_PASSWORD:123456}
+
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      database: ${REDIS_DATABASE:0}
+      password: ${REDIS_PASSWORD:}
+
+# 开发环境日志配置
+mybatis-plus:
+  configuration:
+    # 开发环境打印 SQL
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+app:
+  exception:
+    # 开发环境允许打印业务异常堆栈
+    print-business-stack-trace: true
