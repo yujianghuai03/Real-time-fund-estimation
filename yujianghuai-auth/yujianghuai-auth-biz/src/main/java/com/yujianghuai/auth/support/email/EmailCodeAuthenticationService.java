@@ -1,6 +1,7 @@
 package com.yujianghuai.auth.support.email;
 
 import com.yujianghuai.common.constant.EmailConstants;
+import com.yujianghuai.common.tenant.TenantContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -17,11 +18,15 @@ public class EmailCodeAuthenticationService {
         if (!StringUtils.hasText(email) || !StringUtils.hasText(code)) {
             throw new BadCredentialsException("邮箱或验证码不能为空");
         }
-        String redisKey = EmailConstants.verificationCodeKey(email.trim());
+
+        String tenantId = TenantContext.getRequiredTenantId();
+        String redisKey = EmailConstants.verificationCodeKey(tenantId, email.trim());
         String cachedCode = stringRedisTemplate.opsForValue().get(redisKey);
+
         if (!StringUtils.hasText(cachedCode) || !cachedCode.equals(code.trim())) {
             throw new BadCredentialsException("邮箱验证码错误或已过期");
         }
+
         stringRedisTemplate.delete(redisKey);
     }
 }
