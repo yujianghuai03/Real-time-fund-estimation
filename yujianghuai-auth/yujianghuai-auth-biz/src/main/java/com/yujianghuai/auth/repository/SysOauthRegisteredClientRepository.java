@@ -7,7 +7,6 @@ import com.yujianghuai.auth.support.email.OAuth2ResourceOwnerEmailAuthentication
 import com.yujianghuai.common.tenant.TenantContext;
 import java.time.Duration;
 import java.util.Arrays;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
@@ -20,11 +19,9 @@ import org.springframework.util.StringUtils;
 public class SysOauthRegisteredClientRepository implements RegisteredClientRepository {
 
     private final SysOauthClientMapper clientMapper;
-    private final PasswordEncoder passwordEncoder;
 
-    public SysOauthRegisteredClientRepository(SysOauthClientMapper clientMapper, PasswordEncoder passwordEncoder) {
+    public SysOauthRegisteredClientRepository(SysOauthClientMapper clientMapper) {
         this.clientMapper = clientMapper;
-        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
@@ -69,7 +66,7 @@ public class SysOauthRegisteredClientRepository implements RegisteredClientRepos
     private RegisteredClient toRegisteredClient(SysOauthClient client) {
         RegisteredClient.Builder builder = RegisteredClient.withId(String.valueOf(client.getId()))
                 .clientId(client.getClientId())
-                .clientSecret(resolveClientSecret(client.getClientSecret()))
+                .clientSecret(client.getClientSecret())
                 .clientName(client.getClientName())
                 .clientSettings(ClientSettings.builder()
                         .requireAuthorizationConsent(isEnabled(client.getRequireAuthorizationConsent()))
@@ -131,16 +128,6 @@ public class SysOauthRegisteredClientRepository implements RegisteredClientRepos
             return OAuth2ResourceOwnerEmailAuthenticationProvider.EMAIL_CODE;
         }
         return new AuthorizationGrantType(value);
-    }
-
-    private String resolveClientSecret(String clientSecret) {
-        if (!StringUtils.hasText(clientSecret)) {
-            return clientSecret;
-        }
-        if (clientSecret.startsWith("$2a$") || clientSecret.startsWith("$2b$") || clientSecret.startsWith("$2y$")) {
-            return clientSecret;
-        }
-        return passwordEncoder.encode(clientSecret);
     }
 
     private Long parseClientId(String id) {
