@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.yujianghuai.auth.entity.SysOauthClient;
 import com.yujianghuai.auth.mapper.SysOauthClientMapper;
 import com.yujianghuai.auth.support.email.OAuth2ResourceOwnerEmailAuthenticationProvider;
+import com.yujianghuai.common.tenant.TenantContext;
 import java.time.Duration;
 import java.util.Arrays;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -34,8 +35,13 @@ public class SysOauthRegisteredClientRepository implements RegisteredClientRepos
     @Override
     public RegisteredClient findById(String id) {
         Assert.hasText(id, "id cannot be empty");
+        Long clientId = parseClientId(id);
+        if (clientId == null) {
+            return null;
+        }
+
         SysOauthClient client = clientMapper.selectOne(new LambdaQueryWrapper<SysOauthClient>()
-                .eq(SysOauthClient::getId, Long.valueOf(id))
+                .eq(SysOauthClient::getId, clientId)
                 .eq(SysOauthClient::getStatus, 1)
                 .last("limit 1"));
         return client == null ? null : toRegisteredClient(client);
@@ -44,9 +50,16 @@ public class SysOauthRegisteredClientRepository implements RegisteredClientRepos
     @Override
     public RegisteredClient findByClientId(String clientId) {
         Assert.hasText(clientId, "clientId cannot be empty");
-        SysOauthClient client = clientMapper.selectOne(new LambdaQueryWrapper<SysOauthClient>()
+        LambdaQueryWrapper<SysOauthClient> wrapper = new LambdaQueryWrapper<SysOauthClient>()
                 .eq(SysOauthClient::getClientId, clientId)
-                .eq(SysOauthClient::getStatus, 1)
+                .eq(SysOauthClient::getStatus, 1);
+
+        Long tenantId = getCurrentTenantId();
+        if (tenantId != null) {
+            wrapper.eq(SysOauthClient::getTenantId, tenantId);
+        }
+
+        SysOauthClient client = clientMapper.selectOne(wrapper
                 .orderByAsc(SysOauthClient::getTenantId)
                 .orderByAsc(SysOauthClient::getId)
                 .last("limit 1"));
@@ -128,6 +141,26 @@ public class SysOauthRegisteredClientRepository implements RegisteredClientRepos
             return clientSecret;
         }
         return passwordEncoder.encode(clientSecret);
+    }
+
+    private Long parseClientId(String id) {
+        try {
+            return Long.valueOf(id);
+        } catch (NumberFormatException ex) {
+            return null;
+        }
+    }
+
+    private Long getCurrentTenantId() {
+        String tenantId = TenantContext.getTenantId();
+        if (!StringUtils.hasText(tenantId)) {
+            return null;
+        }
+        try {
+            return Long.valueOf(tenantId);
+        } catch (NumberFormatException ex) {
+            return null;
+        }
     }
 
     private long resolveTtl(Integer ttl, long defaultValue) {
