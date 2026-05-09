@@ -1,25 +1,15 @@
 package com.yujianghuai.admin.controller;
 
-import java.security.SecureRandom;
-import java.time.Duration;
-import java.util.Collections;
+
 
 import com.yujianghuai.admin.dto.EmailVerificationCodeRequest;
 import com.yujianghuai.admin.service.EmailVerificationCodeService;
-import com.yujianghuai.admin.service.impl.EmailVerificationCodeServiceImpl;
-import com.yujianghuai.common.constant.EmailConstants;
-import com.yujianghuai.common.email.EmailProperties;
-import com.yujianghuai.common.email.EmailService;
-import com.yujianghuai.common.tenant.TenantContext;
 import com.yujianghuai.common.web.R;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.data.redis.core.script.DefaultRedisScript;
-import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
