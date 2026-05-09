@@ -20,13 +20,31 @@ public class EmailCodeAuthenticationService {
         }
 
         String tenantId = TenantContext.getRequiredTenantId();
-        String redisKey = EmailConstants.verificationCodeKey(tenantId, email.trim());
+        String normalizedEmail = email.trim();
+        String redisKey = EmailConstants.verificationCodeKey(tenantId, normalizedEmail);
+        String failCountKey = EmailConstants.verificationCodeFailCountKey(tenantId, normalizedEmail);
         String cachedCode = stringRedisTemplate.opsForValue().get(redisKey);
 
-        if (!StringUtils.hasText(cachedCode) || !cachedCode.equals(code.trim())) {
+        if (!StringUtils.hasText(cachedCode)) {
+            throw new BadCredentialsException("邮箱验证码错误或已过期");
+        }
+
+        if (!cachedCode.equals(code.trim())) {
+            Long failCount = stringRedisTemplate.opsForValue().increment(failCountKey);
+            if (failCount != null && failCount == 1) {
+                stringRedisTemplate.expire(failCountKey, EmailConstants.VERIFICATION_CODE_FAIL_COUNT_TTL);
+            }
+
+            if (failCount != null && failCount >= EmailConstants.VERIFICATION_CODE_MAX_FAIL_COUNT) {
+                stringRedisTemplate.delete(redisKey);
+                stringRedisTemplate.delete(failCountKey);
+                throw new BadCredentialsException("邮箱验证码错误次数过多，请重新获取");
+            }
+
             throw new BadCredentialsException("邮箱验证码错误或已过期");
         }
 
         stringRedisTemplate.delete(redisKey);
+        stringRedisTemplate.delete(failCountKey);
     }
 }
