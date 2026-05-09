@@ -3,6 +3,9 @@ package com.yujianghuai.common.email;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * 邮件发送配置。
  */
@@ -65,6 +68,7 @@ public class EmailProperties {
      */
     private String templatePath = "email/email.ftl";
 
+
     /**
      * 验证码发送限制配置。
      */
@@ -90,5 +94,11 @@ public class EmailProperties {
          * 同一 IP 每小时最多发送次数。
          */
         private Integer ipHourLimit = 30;
+
+        /**
+         * 可信代理IP列表。
+         * 只有请求来自这些代理时，才信任 X-Forwarded-For 或 X-Real-IP。
+         */
+        private List<String> trustedProxies = new ArrayList<>();
     }
 }

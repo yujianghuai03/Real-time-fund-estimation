@@ -201,16 +201,26 @@ public class SysEmailController {
      * @return 客户端IP
      */
     private String getClientIp(HttpServletRequest request) {
-        String ip = firstValidIp(request.getHeader("X-Forwarded-For"));
-        if (!StringUtils.hasText(ip)) {
-            ip = firstValidIp(request.getHeader("X-Real-IP"));
-        }
-        if (!StringUtils.hasText(ip)) {
-            ip = request.getRemoteAddr();
-        }
-        return StringUtils.hasText(ip) ? ip : UNKNOWN_IP;
-    }
+        String remoteAddr = request.getRemoteAddr();
 
+        if (isTrustedProxy(remoteAddr)) {
+            String ip = firstValidIp(request.getHeader("X-Forwarded-For"));
+            if (!StringUtils.hasText(ip)) {
+                ip = firstValidIp(request.getHeader("X-Real-IP"));
+            }
+            if (StringUtils.hasText(ip)) {
+                return ip;
+            }
+        }
+        return StringUtils.hasText(remoteAddr) ? remoteAddr : UNKNOWN_IP;
+    }
+    private boolean isTrustedProxy(String remoteAddr){
+        EmailProperties.VerificationCodeLimit limit = emailProperties.getVerificationCodeLimit();
+        if (limit == null || !Boolean.TRUE.equals(limit.getIpEnabled())) {
+            return false;
+        }
+        return limit.getTrustedProxies() != null && limit.getTrustedProxies().contains(remoteAddr);
+    }
     /**
      * 获取第一个有效IP。
      *

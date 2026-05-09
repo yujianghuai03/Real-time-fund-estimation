@@ -31,3 +31,6 @@ app:
       ip-minute-limit: 5
       # 同一IP每小时限制次数
       ip-hour-limit: 30
+      trusted-proxies:
+        - 127.0.0.1
+        - 0:0:0:0:0:0:0:1
