@@ -1,6 +1,8 @@
 package com.yujianghuai.admin.controller;
 
 import java.security.SecureRandom;
+import java.time.Duration;
+import java.util.Collections;
 
 import com.yujianghuai.admin.dto.EmailVerificationCodeRequest;
 import com.yujianghuai.common.constant.EmailConstants;
@@ -14,6 +16,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -31,6 +34,13 @@ public class SysEmailController {
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
     private static final int VERIFICATION_CODE_BOUND = 1_000_000;
     private static final String UNKNOWN_IP = "unknown";
+    private static final DefaultRedisScript<Long> INCREMENT_WITH_EXPIRE_SCRIPT = new DefaultRedisScript<>("""
+            local current = redis.call('INCR', KEYS[1])
+            if current == 1 then
+                redis.call('EXPIRE', KEYS[1], ARGV[1])
+            end
+            return current
+            """, Long.class);
 
     private final EmailService emailService;
     private final EmailProperties emailProperties;
@@ -108,16 +118,17 @@ public class SysEmailController {
     }
 
     /**
-     * Redis计数自增并设置过期时间。
+     * Redis计数自增并原子设置过期时间。
      *
      * @param redisKey Redis Key
      * @param ttl 过期时间
      */
-    private void increaseWithTtl(String redisKey, java.time.Duration ttl) {
-        Long count = stringRedisTemplate.opsForValue().increment(redisKey);
-        if (count != null && count == 1L) {
-            stringRedisTemplate.expire(redisKey, ttl);
-        }
+    private void increaseWithTtl(String redisKey, Duration ttl) {
+        stringRedisTemplate.execute(
+                INCREMENT_WITH_EXPIRE_SCRIPT,
+                Collections.singletonList(redisKey),
+                String.valueOf(ttl.toSeconds())
+        );
     }
 
     /**
