@@ -3,7 +3,7 @@ package com.yujianghuai.admin.controller;
 import com.yujianghuai.admin.entity.SysRole;
 import com.yujianghuai.admin.model.RoleMenuRequest;
 import com.yujianghuai.admin.model.RoleRequest;
-import com.yujianghuai.admin.service.SysRoleService;
+import com.yujianghuai.admin.service.impl.SysRoleService;
 import com.yujianghuai.common.web.R;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

@@ -2,7 +2,7 @@ package com.yujianghuai.admin.controller;
 
 import com.yujianghuai.admin.model.UserRequest;
 import com.yujianghuai.admin.model.UserVO;
-import com.yujianghuai.admin.service.SysUserService;
+import com.yujianghuai.admin.service.impl.SysUserService;
 import com.yujianghuai.common.web.R;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

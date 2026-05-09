@@ -1,4 +1,4 @@
-package com.yujianghuai.admin.service;
+package com.yujianghuai.admin.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.yujianghuai.admin.entity.SysMenu;

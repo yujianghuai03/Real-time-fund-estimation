@@ -3,7 +3,7 @@ package com.yujianghuai.admin.controller;
 import com.yujianghuai.admin.entity.SysMenu;
 import com.yujianghuai.admin.model.MenuRequest;
 import com.yujianghuai.admin.model.MenuVO;
-import com.yujianghuai.admin.service.SysMenuService;
+import com.yujianghuai.admin.service.impl.SysMenuService;
 import com.yujianghuai.common.web.R;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
