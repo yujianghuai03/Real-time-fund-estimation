@@ -31,6 +31,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -126,10 +127,11 @@ public class AuthorizationServerConfiguration {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(registry -> registry
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/admin-api/email/verification-code").permitAll()
                         .requestMatchers(
                                 "/auth2/**",
                                 "/api/funds/search",
-                                "/admin-api/email/verification-code",
                                 "/api/funds/estimate/**",
                                 "/api/funds/indices",
                                 "/v3/api-docs/**",
