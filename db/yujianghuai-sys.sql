@@ -494,27 +494,45 @@ WHERE `tenant_id` = 1
 ON DUPLICATE KEY UPDATE `tenant_id` = VALUES(`tenant_id`);
 
 INSERT INTO `sys_oauth_client` (
-    `id`, `tenant_id`, `client_id`, `client_name`, `client_authentication_methods`,
-    `authorization_grant_types`, `redirect_uris`, `scopes`, `access_token_ttl`, `refresh_token_ttl`,
-    `require_authorization_consent`, `reuse_refresh_tokens`, `status`
+    `id`,
+    `tenant_id`,
+    `client_id`,
+    `client_secret`,
+    `client_name`,
+    `client_authentication_methods`,
+    `authorization_grant_types`,
+    `redirect_uris`,
+    `scopes`,
+    `access_token_ttl`,
+    `refresh_token_ttl`,
+    `require_authorization_consent`,
+    `reuse_refresh_tokens`,
+    `status`
 ) VALUES (
-    1,
-    1,
-    'yujianghuai-client',
-    '默认客户端',
-    'none,client_secret_post',
-    'authorization_code,refresh_token,client_credentials,password,email_code',
-    'http://127.0.0.1:8080/login/oauth2/code/yujianghuai',
-    'openid,profile,api.read,api.write,email',
-    7200,
-    604800,
-    0,
-    0,
-    1
-) ON DUPLICATE KEY UPDATE
+             1,
+             1,
+             'yujianghuai-client',
+             NULL,
+             '默认客户端',
+             'none',
+             'authorization_code,refresh_token,password,email_code',
+             'http://127.0.0.1:8080/login/oauth2/code/yujianghuai',
+             'openid,profile,api.read,api.write,email',
+             7200,
+             604800,
+             0,
+             0,
+             1
+         ) ON DUPLICATE KEY UPDATE
     `client_secret` = VALUES(`client_secret`),
+    `client_authentication_methods` = VALUES(`client_authentication_methods`),
     `authorization_grant_types` = VALUES(`authorization_grant_types`),
+    `redirect_uris` = VALUES(`redirect_uris`),
     `scopes` = VALUES(`scopes`),
+    `access_token_ttl` = VALUES(`access_token_ttl`),
+    `refresh_token_ttl` = VALUES(`refresh_token_ttl`),
+    `require_authorization_consent` = VALUES(`require_authorization_consent`),
+    `reuse_refresh_tokens` = VALUES(`reuse_refresh_tokens`),
     `status` = VALUES(`status`);
 
 INSERT INTO `sys_dict_type` (`id`, `tenant_id`, `dict_name`, `dict_type`, `status`, `remark`)
