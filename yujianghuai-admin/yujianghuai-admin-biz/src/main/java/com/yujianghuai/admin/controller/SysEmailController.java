@@ -62,11 +62,11 @@ public class SysEmailController {
         String clientIp = getClientIp(servletRequest);
 
         if (isIpLimited(tenantId, clientIp)) {
-            return R.failed("当前IP请求过于频繁，请稍后再试");
+            return R.fail("当前IP请求过于频繁，请稍后再试");
         }
 
         if (isInCooldown(tenantId, email)) {
-            return R.failed("验证码发送过于频繁，请60秒后再试");
+            return R.fail("验证码发送过于频繁，请60秒后再试");
         }
 
         String code = generateSixDigitCode();
