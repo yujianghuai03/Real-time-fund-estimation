@@ -18,6 +18,7 @@ import org.springframework.util.StringUtils;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.Collections;
+import java.util.Locale;
 
 /**
  * @author yxh
@@ -44,7 +45,7 @@ public class EmailVerificationCodeServiceImpl implements EmailVerificationCodeSe
     public R sendVerificationCode(EmailVerificationCodeRequest request,
                                         HttpServletRequest servletRequest) {
         String tenantId = TenantContext.getRequiredTenantId();
-        String email = request.getEmail();
+        String email = request.getEmail().trim().toLowerCase(Locale.ROOT);
         String clientIp = getClientIp(servletRequest);
 
         if (isIpLimited(tenantId, clientIp)) {
