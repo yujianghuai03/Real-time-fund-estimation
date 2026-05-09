@@ -64,4 +64,31 @@ public class EmailProperties {
      * FreeMarker 模板路径。
      */
     private String templatePath = "email/email.ftl";
+
+    /**
+     * 验证码发送限制配置。
+     */
+    private VerificationCodeLimit verificationCodeLimit = new VerificationCodeLimit();
+
+    /**
+     * 验证码发送限制配置。
+     */
+    @Data
+    public static class VerificationCodeLimit {
+
+        /**
+         * 是否启用 IP 限流。
+         */
+        private Boolean ipEnabled = true;
+
+        /**
+         * 同一 IP 每分钟最多发送次数。
+         */
+        private Integer ipMinuteLimit = 5;
+
+        /**
+         * 同一 IP 每小时最多发送次数。
+         */
+        private Integer ipHourLimit = 30;
+    }
 }
