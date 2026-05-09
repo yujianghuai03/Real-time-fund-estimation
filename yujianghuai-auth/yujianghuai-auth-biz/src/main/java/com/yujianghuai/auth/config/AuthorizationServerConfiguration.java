@@ -11,6 +11,8 @@ import com.yujianghuai.auth.repository.SysOauthRegisteredClientRepository;
 import com.yujianghuai.auth.service.AuthUserDetailsService;
 import com.yujianghuai.auth.service.AuthLoginPermissionService;
 import com.yujianghuai.auth.support.core.AuthTokenCustomizer;
+import com.yujianghuai.auth.support.core.PublicClientCustomGrantAuthenticationConverter;
+import com.yujianghuai.auth.support.core.PublicClientCustomGrantAuthenticationProvider;
 import com.yujianghuai.auth.support.email.EmailCodeAuthenticationService;
 import com.yujianghuai.auth.support.email.OAuth2ResourceOwnerEmailAuthenticationConverter;
 import com.yujianghuai.auth.support.email.OAuth2ResourceOwnerEmailAuthenticationProvider;
@@ -65,6 +67,7 @@ import org.springframework.security.oauth2.server.authorization.token.OAuth2Toke
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationConverter;
 import org.springframework.security.web.authentication.DelegatingAuthenticationConverter;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.security.web.util.matcher.MediaTypeRequestMatcher;
@@ -87,6 +90,7 @@ public class AuthorizationServerConfiguration {
             AuthUserDetailsService authUserDetailsService,
             AuthLoginPermissionService loginPermissionService,
             EmailCodeAuthenticationService emailCodeAuthenticationService,
+            RegisteredClientRepository registeredClientRepository,
             PasswordEncoder passwordEncoder,
             JwtAuthenticationConverter jwtAuthenticationConverter) throws Exception {
 
@@ -100,7 +104,12 @@ public class AuthorizationServerConfiguration {
                         .accessTokenRequestConverter(accessTokenRequestConverter())
                         .accessTokenResponseHandler(successHandler)
                         .errorResponseHandler(failureHandler))
-                .clientAuthentication(client -> client.errorResponseHandler(failureHandler))
+                .clientAuthentication(client -> client
+                        .authenticationConverters(converters -> converters.add(0,
+                                new PublicClientCustomGrantAuthenticationConverter()))
+                        .authenticationProviders(providers -> providers.add(0,
+                                new PublicClientCustomGrantAuthenticationProvider(registeredClientRepository)))
+                        .errorResponseHandler(failureHandler))
                 .authorizationService(authorizationService)
                 .authorizationServerSettings(authorizationServerSettings)
                 .oidc(Customizer.withDefaults());
@@ -110,9 +119,10 @@ public class AuthorizationServerConfiguration {
                 emailCodeAuthenticationService, passwordEncoder);
 
         http.csrf(AbstractHttpConfigurer::disable)
-                .exceptionHandling(exceptions -> exceptions.defaultAuthenticationEntryPointFor(
-                        new LoginUrlAuthenticationEntryPoint("/login"),
-                        new MediaTypeRequestMatcher(MediaType.TEXT_HTML)))
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint(
+                                new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)
+                        ))
                 .oauth2ResourceServer(resourceServer -> resourceServer
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)));
 
@@ -130,6 +140,7 @@ public class AuthorizationServerConfiguration {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/admin-api/email/verification-code").permitAll()
                         .requestMatchers(
+                                "/oauth2/**",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
