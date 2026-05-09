@@ -55,13 +55,11 @@ public class EmailVerificationCodeServiceImpl implements EmailVerificationCodeSe
         if (isInCooldown(tenantId, email)) {
             return R.fail("验证码发送过于频繁，请60秒后再试");
         }
-
+        recordIpLimit(tenantId, clientIp);
         String code = generateSixDigitCode();
         emailService.sendVerificationCode(email, code);
-
         cacheVerificationCode(tenantId, email, code);
         cacheCooldown(tenantId, email);
-        recordIpLimit(tenantId, clientIp);
         return R.ok(true);
     }
     /**
