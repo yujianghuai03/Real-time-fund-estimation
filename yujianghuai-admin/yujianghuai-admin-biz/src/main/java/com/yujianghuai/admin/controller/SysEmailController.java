@@ -42,26 +42,56 @@ public class SysEmailController {
     public R<Boolean> sendVerificationCode(@Valid @RequestBody EmailVerificationCodeRequest request) {
         String email = request.getEmail();
 
-        if (hasCachedVerificationCode(email)) {
-            return R.ok(Boolean.TRUE);
+        if (isInCooldown(email)) {
+            return R.failed("验证码发送过于频繁，请60秒后再试");
         }
 
         String code = generateSixDigitCode();
         emailService.sendVerificationCode(email, code);
+
         cacheVerificationCode(email, code);
+        cacheCooldown(email);
+
         return R.ok(Boolean.TRUE);
     }
 
-    private boolean hasCachedVerificationCode(String email) {
-        String redisKey = EmailConstants.verificationCodeKey(email);
+    /**
+     * 判断当前邮箱是否处于发送冷却中。
+     *
+     * @param email 邮箱
+     * @return 是否处于冷却中
+     */
+    private boolean isInCooldown(String email) {
+        String redisKey = EmailConstants.verificationCodeCooldownKey(email);
         return StringUtils.hasText(stringRedisTemplate.opsForValue().get(redisKey));
     }
 
+    /**
+     * 缓存邮箱验证码。
+     *
+     * @param email 邮箱
+     * @param code 验证码
+     */
     private void cacheVerificationCode(String email, String code) {
         String redisKey = EmailConstants.verificationCodeKey(email);
         stringRedisTemplate.opsForValue().set(redisKey, code, EmailConstants.VERIFICATION_CODE_TTL);
     }
 
+    /**
+     * 缓存发送冷却状态。
+     *
+     * @param email 邮箱
+     */
+    private void cacheCooldown(String email) {
+        String redisKey = EmailConstants.verificationCodeCooldownKey(email);
+        stringRedisTemplate.opsForValue().set(redisKey, "1", EmailConstants.VERIFICATION_CODE_COOLDOWN_TTL);
+    }
+
+    /**
+     * 生成六位数字验证码。
+     *
+     * @return 六位数字验证码
+     */
     private String generateSixDigitCode() {
         return String.format("%06d", SECURE_RANDOM.nextInt(VERIFICATION_CODE_BOUND));
     }
