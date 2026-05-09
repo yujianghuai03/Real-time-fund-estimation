@@ -192,9 +192,8 @@ public class AuthorizationServerConfiguration {
     }
 
     @Bean
-    public RegisteredClientRepository registeredClientRepository(SysOauthClientMapper clientMapper,
-                                                                 PasswordEncoder passwordEncoder) {
-        return new SysOauthRegisteredClientRepository(clientMapper, passwordEncoder);
+    public RegisteredClientRepository registeredClientRepository(SysOauthClientMapper clientMapper) {
+        return new SysOauthRegisteredClientRepository(clientMapper);
     }
 
     @Bean
