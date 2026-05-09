@@ -33,20 +33,22 @@ public final class EmailConstants {
     /**
      * 构建邮箱验证码 Redis Key。
      *
+     * @param tenantId 租户ID
      * @param email 邮箱
      * @return Redis Key
      */
-    public static String verificationCodeKey(String email) {
-        return VERIFICATION_CODE_KEY_PREFIX + email;
+    public static String verificationCodeKey(String tenantId, String email) {
+        return VERIFICATION_CODE_KEY_PREFIX + tenantId + ":" + email;
     }
 
     /**
      * 构建邮箱验证码发送冷却 Redis Key。
      *
+     * @param tenantId 租户ID
      * @param email 邮箱
      * @return Redis Key
      */
-    public static String verificationCodeCooldownKey(String email) {
-        return VERIFICATION_CODE_COOLDOWN_KEY_PREFIX + email;
+    public static String verificationCodeCooldownKey(String tenantId, String email) {
+        return VERIFICATION_CODE_COOLDOWN_KEY_PREFIX + tenantId + ":" + email;
     }
 }
