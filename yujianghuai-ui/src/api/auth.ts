@@ -2,7 +2,6 @@ import { request } from '@/api/http'
 import type { OAuthTokenResponse } from '@/utils/authStorage'
 
 const OAUTH_CLIENT_ID = import.meta.env.VITE_OAUTH_CLIENT_ID || 'yujianghuai-client'
-const OAUTH_CLIENT_SECRET = import.meta.env.VITE_OAUTH_CLIENT_SECRET || 'yujianghuai-secret'
 const OAUTH_SCOPE = import.meta.env.VITE_OAUTH_SCOPE || 'email'
 
 interface EmailCodeLoginParams {
@@ -28,7 +27,6 @@ export interface RegisterResponse extends Partial<OAuthTokenResponse> {
 const buildTokenBody = (params: Record<string, string>) => {
   const body = new URLSearchParams({
     client_id: OAUTH_CLIENT_ID,
-    client_secret: OAUTH_CLIENT_SECRET,
     scope: OAUTH_SCOPE,
     'TENANT-ID': params.tenantId,
     'LOGIN-TYPE': 'PORTAL',
