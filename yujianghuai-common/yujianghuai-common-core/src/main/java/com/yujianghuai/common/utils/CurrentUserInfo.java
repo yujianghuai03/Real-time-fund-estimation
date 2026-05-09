@@ -1,6 +1,7 @@
 package com.yujianghuai.common.utils;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.io.Serializable;
 
 /**
  * 当前登录用户信息。
@@ -9,7 +10,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * @date 2026/5/8
  */
 @Schema(description = "当前登录用户信息")
-public class CurrentUserInfo {
+public class CurrentUserInfo implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     @Schema(description = "用户ID")
     private Long id;
