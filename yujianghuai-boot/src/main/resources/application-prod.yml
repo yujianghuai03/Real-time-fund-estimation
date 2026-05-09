@@ -22,3 +22,12 @@ app:
   exception:
     # 生产环境禁止打印业务异常完整堆栈
     print-business-stack-trace: false
+
+  email:
+    verification-code-limit:
+      # 是否启用IP限流
+      ip-enabled: true
+      # 同一IP每分钟限制次数
+      ip-minute-limit: 5
+      # 同一IP每小时限制次数
+      ip-hour-limit: 30
