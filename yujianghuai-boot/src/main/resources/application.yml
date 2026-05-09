@@ -1,36 +1,23 @@
 spring:
   application:
     name: yujianghuai-boot
-  datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://127.0.0.1:3306/yujianghuai?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
-    username: root
-    password: 123456
-  data:
-    redis:
-      host: 127.0.0.1
-      port: 6379
-      database: 0
-#  rabbitmq:
-#    host: 127.0.0.1
-#    port: 5672
-#    username: guest
-#    password: guest
+  profiles:
+    # 默认使用开发环境；后续可通过启动参数或环境变量切换：
+    # --spring.profiles.active=prod
+    # SPRING_PROFILES_ACTIVE=prod
+    active: ${SPRING_PROFILES_ACTIVE:dev}
 
 server:
-  port: 8080
+  port: ${SERVER_PORT:8080}
 
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
   global-config:
     db-config:
       id-type: auto
+
 app:
-  exception:
-    # 开发测试环境可开启业务异常堆栈日志，生产环境建议保持关闭
-    print-business-stack-trace: true
   email:
     host: ${APP_EMAIL_HOST:smtp.qq.com}
     port: ${APP_EMAIL_PORT:465}
