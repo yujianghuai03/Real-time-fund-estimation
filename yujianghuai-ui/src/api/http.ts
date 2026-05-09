@@ -49,6 +49,7 @@ const parseResponse = async (response: Response): Promise<unknown> => {
 
 const PUBLIC_AUTH_PATHS = ['/auth2', '/oauth2']
 const PUBLIC_AUTH_EXACT_PATHS = ['/admin-api/email/verification-code']
+const TENANT_HEADER_NAME = 'TENANT-ID'
 
 const resolveRequestPath = (url: string): string => {
   try {
@@ -81,12 +82,24 @@ const resolveErrorMessage = (payload: unknown, fallback: string): string => {
   return fallback
 }
 
+const resolveTenantId = (options: RequestOptions): string => {
+  const hasRequestTenantId = Object.prototype.hasOwnProperty.call(options, 'tenantId')
+  const tenantId = (hasRequestTenantId ? options.tenantId : getStoredTenantId())?.trim()
+
+  if (!tenantId) {
+    throw new ApiError('租户 ID 不能为空，请先选择或输入租户 ID', 400)
+  }
+
+  return tenantId
+}
+
 export const request = async <T>(url: string, options: RequestOptions = {}): Promise<T> => {
   const headers = new Headers(options.headers)
-  const tenantId = options.tenantId || getStoredTenantId()
+  const tenantId = resolveTenantId(options)
   const isPublicRequest = isPublicAuthRequest(url)
 
   headers.delete('Authorization')
+  headers.set(TENANT_HEADER_NAME, tenantId)
 
   if (!isPublicRequest) {
     const accessToken = getStoredAccessToken()
@@ -104,10 +117,6 @@ export const request = async <T>(url: string, options: RequestOptions = {}): Pro
     }
 
     headers.set('Authorization', authorization)
-  }
-
-  if (tenantId) {
-    headers.set('TENANT-ID', tenantId)
   }
 
   const response = await fetch(url, {
