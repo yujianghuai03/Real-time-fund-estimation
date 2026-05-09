@@ -13,10 +13,10 @@ public interface EmailVerificationCodeService {
     /**
      * 发送邮箱验证码
      *
-     * @param email 邮箱地址
+     * @param request 邮箱地址
      * @return 是否发送成功
      */
-    R sendVerificationCode(EmailVerificationCodeRequest request,
+    R<Boolean> sendVerificationCode(EmailVerificationCodeRequest request,
                            HttpServletRequest servletRequest);
 
 }

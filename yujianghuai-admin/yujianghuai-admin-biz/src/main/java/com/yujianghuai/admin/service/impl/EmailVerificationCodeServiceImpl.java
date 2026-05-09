@@ -42,7 +42,7 @@ public class EmailVerificationCodeServiceImpl implements EmailVerificationCodeSe
             return current
             """, Long.class);
     @Override
-    public R sendVerificationCode(EmailVerificationCodeRequest request,
+    public R<Boolean> sendVerificationCode(EmailVerificationCodeRequest request,
                                         HttpServletRequest servletRequest) {
         String tenantId = TenantContext.getRequiredTenantId();
         String email = request.getEmail().trim().toLowerCase(Locale.ROOT);
