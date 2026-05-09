@@ -25,15 +25,11 @@ export interface RegisterResponse extends Partial<OAuthTokenResponse> {
 }
 
 const buildTokenBody = (params: Record<string, string>) => {
-  const body = new URLSearchParams({
+  return new URLSearchParams({
     client_id: OAUTH_CLIENT_ID,
     scope: OAUTH_SCOPE,
-    'TENANT-ID': params.tenantId,
-    'LOGIN-TYPE': 'PORTAL',
     ...params
   })
-  body.delete('tenantId')
-  return body
 }
 
 export const sendEmailVerificationCode = (email: string, tenantId: string): Promise<boolean> => {
@@ -56,7 +52,6 @@ export const loginByEmailCode = ({ tenantId, email, code }: EmailCodeLoginParams
       'LOGIN-TYPE': 'PORTAL'
     },
     body: buildTokenBody({
-      tenantId,
       grant_type: 'email_code',
       email,
       code
