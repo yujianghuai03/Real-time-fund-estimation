@@ -5,11 +5,12 @@ import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
+import com.yujianghuai.auth.filter.TokenRedisValidationFilter;
 import com.yujianghuai.auth.mapper.SysOauthClientMapper;
 import com.yujianghuai.auth.repository.RedisOAuth2AuthorizationService;
 import com.yujianghuai.auth.repository.SysOauthRegisteredClientRepository;
-import com.yujianghuai.auth.service.AuthUserDetailsService;
 import com.yujianghuai.auth.service.AuthLoginPermissionService;
+import com.yujianghuai.auth.service.AuthUserDetailsService;
 import com.yujianghuai.auth.support.core.AuthTokenCustomizer;
 import com.yujianghuai.auth.support.core.PublicClientCustomGrantAuthenticationConverter;
 import com.yujianghuai.auth.support.core.PublicClientCustomGrantAuthenticationProvider;
@@ -21,18 +22,11 @@ import com.yujianghuai.auth.support.handler.AuthSuccessHandler;
 import com.yujianghuai.auth.support.password.OAuth2ResourceOwnerPasswordAuthenticationConverter;
 import com.yujianghuai.auth.support.password.OAuth2ResourceOwnerPasswordAuthenticationProvider;
 import com.yujianghuai.common.constant.SecurityConstants;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.interfaces.RSAPrivateKey;
-import java.security.interfaces.RSAPublicKey;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.UUID;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -51,8 +45,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
-import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.oauth2.server.authorization.InMemoryOAuth2AuthorizationConsentService;
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationConsentService;
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService;
@@ -64,15 +56,24 @@ import org.springframework.security.oauth2.server.authorization.token.Delegating
 import org.springframework.security.oauth2.server.authorization.token.JwtGenerator;
 import org.springframework.security.oauth2.server.authorization.token.OAuth2RefreshTokenGenerator;
 import org.springframework.security.oauth2.server.authorization.token.OAuth2TokenGenerator;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationConverter;
 import org.springframework.security.web.authentication.DelegatingAuthenticationConverter;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
-import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 import org.springframework.security.web.util.matcher.RequestMatcher;
-import org.springframework.security.web.util.matcher.MediaTypeRequestMatcher;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.util.StringUtils;
+
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.interfaces.RSAPrivateKey;
+import java.security.interfaces.RSAPublicKey;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.UUID;
 
 @Configuration
 @EnableMethodSecurity
@@ -92,7 +93,8 @@ public class AuthorizationServerConfiguration {
             EmailCodeAuthenticationService emailCodeAuthenticationService,
             RegisteredClientRepository registeredClientRepository,
             PasswordEncoder passwordEncoder,
-            JwtAuthenticationConverter jwtAuthenticationConverter) throws Exception {
+            JwtAuthenticationConverter jwtAuthenticationConverter,
+            TokenRedisValidationFilter tokenRedisValidationFilter) throws Exception {
 
         OAuth2AuthorizationServerConfiguration.applyDefaultSecurity(http);
         OAuth2AuthorizationServerConfigurer authorizationServerConfigurer =
@@ -124,7 +126,10 @@ public class AuthorizationServerConfiguration {
                                 new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)
                         ))
                 .oauth2ResourceServer(resourceServer -> resourceServer
-                        .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)));
+                        .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter))) //JWT认证
+                .addFilterAfter(tokenRedisValidationFilter, BearerTokenAuthenticationFilter.class) //Redis 认证
+        ;
+
 
         return http.build();
     }
@@ -133,7 +138,8 @@ public class AuthorizationServerConfiguration {
     @Order(Ordered.HIGHEST_PRECEDENCE + 1)
     public SecurityFilterChain applicationSecurityFilterChain(
             HttpSecurity http,
-            JwtAuthenticationConverter jwtAuthenticationConverter) throws Exception {
+            JwtAuthenticationConverter jwtAuthenticationConverter,
+            TokenRedisValidationFilter tokenRedisValidationFilter) throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(registry -> registry
@@ -162,7 +168,8 @@ public class AuthorizationServerConfiguration {
                         }))
                 .formLogin(AbstractHttpConfigurer::disable)
                 .oauth2ResourceServer(resourceServer -> resourceServer
-                        .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)))
+                        .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)))//JWT认证
+                .addFilterAfter(tokenRedisValidationFilter, BearerTokenAuthenticationFilter.class) //Redis 认证
                 .build();
     }
 
