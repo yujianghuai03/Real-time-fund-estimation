@@ -26,7 +26,8 @@ app:
         - /v3/api-docs/**
         - /swagger-ui/**
         - /swagger-ui.html
-        - /actuator/**
+        - /actuator/health
+        - /actuator/info
         - /error
       methods:
         OPTIONS:
@@ -45,7 +46,8 @@ app:
     header-name: TENANT-ID
     ignore-paths:
       - /auth/**
-      - /actuator/**
+      - /actuator/health
+      - /actuator/info
       - /error
       - /api/funds/search
       - /api/funds/estimate/**
