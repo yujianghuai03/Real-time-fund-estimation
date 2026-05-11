@@ -18,6 +18,7 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 /**
  * @author yxh
@@ -77,6 +78,7 @@ public class TokenRedisValidationFilter extends OncePerRequestFilter {
             if (authorization == null) {
                 response.setStatus(HttpStatus.UNAUTHORIZED.value());
                 response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                response.setCharacterEncoding(StandardCharsets.UTF_8.name());
                 response.getWriter().write("{\"code\":401,\"message\":\""+ SecurityConstants.AUTH_TOKEN_INVALID_MESSAGE+"\",\"data\":null}");
                 return;
             }
