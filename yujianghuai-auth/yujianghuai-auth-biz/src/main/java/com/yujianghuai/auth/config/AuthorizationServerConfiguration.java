@@ -73,10 +73,7 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.UUID;
+import java.util.*;
 
 @Configuration
 @EnableMethodSecurity
@@ -151,12 +148,20 @@ public class AuthorizationServerConfiguration {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(registry -> {
-                    permitAllProperties.getMethods().forEach((method, paths) -> {
-                        HttpMethod httpMethod = HttpMethod.valueOf(method.toUpperCase());
-                        registry.requestMatchers(httpMethod, paths.toArray(String[]::new)).permitAll();
-                    });
+                    Map<String, List<String>> methods = permitAllProperties.getMethods();
+                    if (methods != null) {
+                        methods.forEach((method, paths) -> {
+                            if (paths != null && !paths.isEmpty()) {
+                                HttpMethod httpMethod = HttpMethod.valueOf(method.toUpperCase(Locale.ROOT));
+                                registry.requestMatchers(httpMethod, paths.toArray(String[]::new)).permitAll();
+                            }
+                        });
+                    }
 
-                    registry.requestMatchers(permitAllProperties.getPaths().toArray(String[]::new)).permitAll();
+                    List<String> paths = permitAllProperties.getPaths();
+                    if (paths != null && !paths.isEmpty()) {
+                        registry.requestMatchers(paths.toArray(String[]::new)).permitAll();
+                    }
 
                     registry.anyRequest().authenticated();
                 })
