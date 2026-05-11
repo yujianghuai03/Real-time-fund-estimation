@@ -40,4 +40,6 @@ gateway:
       - /.well-known/**
       - /api/funds/search
       - /api/funds/estimate/**
-      - /actuator/**
+      - /api/funds/indices
+      - /actuator/health
+      - /actuator/info

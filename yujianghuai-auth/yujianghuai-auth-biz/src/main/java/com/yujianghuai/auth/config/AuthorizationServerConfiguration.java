@@ -229,26 +229,33 @@ public class AuthorizationServerConfiguration {
                         .accessTokenRequestConverter(accessTokenRequestConverter())
                         .accessTokenResponseHandler(successHandler)
                         .errorResponseHandler(failureHandler))
+                // 配置客户端认证逻辑
                 .clientAuthentication(client -> client
+                        // 添加公开客户端自定义认证
                         .authenticationConverters(converters -> converters.add(0,
                                 new PublicClientCustomGrantAuthenticationConverter()))
                         .authenticationProviders(providers -> providers.add(0,
                                 new PublicClientCustomGrantAuthenticationProvider(registeredClientRepository)))
                         .errorResponseHandler(failureHandler))
+                // 设置 OAuth2 授权信息存储服务
                 .authorizationService(authorizationService)
+                // 设置授权服务器基础配置
                 .authorizationServerSettings(authorizationServerSettings)
                 .oidc(Customizer.withDefaults());
-
+        // 注册自定义授权模式 Provider，例如密码模式、邮箱验证码模式
         addCustomOAuth2GrantAuthenticationProvider(http, authorizationService,
                 tokenGenerator, authUserDetailsService, loginPermissionService,
                 emailCodeAuthenticationService, passwordEncoder);
-
+        // 授权服务器端点安全细节配置
         http.csrf(AbstractHttpConfigurer::disable)
+                // 统一认证失败响应为 401
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint(
                                 new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)
                         ))
+                // OAuth2 授权服务器自身也作为资源服务器解析 JWT
                 .oauth2ResourceServer(resourceServer -> resourceServer
+                        // 使用自定义 JwtAuthenticationConverter 转换权限
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)));
 
         return http.build();
@@ -274,6 +281,7 @@ public class AuthorizationServerConfiguration {
             SecurityPermitAllMatcher securityPermitAllMatcher) throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
+                // 配置接口授权规则
                 .authorizeHttpRequests(registry -> {
                     Map<String, List<String>> methods = permitAllProperties.getMethods();
                     if (methods != null) {
@@ -292,6 +300,7 @@ public class AuthorizationServerConfiguration {
 
                     registry.anyRequest().authenticated();
                 })
+                // 自定义异常响应，保证前端拿到统一 JSON 格式
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint((request, response, authException) -> {
                             response.setStatus(HttpStatus.UNAUTHORIZED.value());
@@ -306,8 +315,10 @@ public class AuthorizationServerConfiguration {
                             response.getWriter().write("{\"code\":403,\"message\":\"" + SecurityConstants.AUTH_ACCESS_DENIED_MESSAGE + "\",\"data\":null}");
                         }))
                 .formLogin(AbstractHttpConfigurer::disable)
+                // 使用自定义 JwtAuthenticationConverter 转换权限
                 .oauth2ResourceServer(resourceServer -> resourceServer
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)))
+                // 二次Token校验
                 .addFilterAfter(new TokenRedisValidationFilter(authorizationService, securityPermitAllMatcher), BearerTokenAuthenticationFilter.class)
                 .build();
     }
@@ -511,6 +522,7 @@ public class AuthorizationServerConfiguration {
         daoAuthenticationProvider.setUserDetailsService(authUserDetailsService);
         daoAuthenticationProvider.setPasswordEncoder(passwordEncoder);
         AuthenticationManager authenticationManager = new ProviderManager(daoAuthenticationProvider);
+
         http.authenticationProvider(new OAuth2ResourceOwnerPasswordAuthenticationProvider(
                 authenticationManager, authorizationService, tokenGenerator, loginPermissionService));
         http.authenticationProvider(new OAuth2ResourceOwnerEmailAuthenticationProvider(
@@ -585,17 +597,12 @@ public class AuthorizationServerConfiguration {
      */
     private String normalizePem(String pem) {
         return pem
-                // 移除公钥 PEM 开始标记
+                .replace("\\n", "\n")
                 .replace("-----BEGIN PUBLIC KEY-----", "")
-                // 移除公钥 PEM 结束标记
                 .replace("-----END PUBLIC KEY-----", "")
-                // 移除私钥 PEM 开始标记
                 .replace("-----BEGIN PRIVATE KEY-----", "")
-                // 移除私钥 PEM 结束标记
                 .replace("-----END PRIVATE KEY-----", "")
-                // 移除所有空白字符，包括换行、空格、Tab
                 .replaceAll("\\s", "")
-                // 去除首尾空白
                 .trim();
     }
 }
