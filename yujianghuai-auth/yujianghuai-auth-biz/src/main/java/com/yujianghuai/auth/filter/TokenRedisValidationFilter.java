@@ -1,6 +1,7 @@
 package com.yujianghuai.auth.filter;
 
 import com.yujianghuai.auth.matcher.SecurityPermitAllMatcher;
+import com.yujianghuai.auth.support.core.AuthTokenCustomizer;
 import com.yujianghuai.common.constant.SecurityConstants;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -15,6 +16,7 @@ import org.springframework.security.oauth2.server.authorization.OAuth2Authorizat
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService;
 import org.springframework.security.oauth2.server.authorization.OAuth2TokenType;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -30,6 +32,7 @@ public class TokenRedisValidationFilter extends OncePerRequestFilter {
     private final OAuth2AuthorizationService authorizationService;
 
     private final SecurityPermitAllMatcher permitAllMatcher;
+
     /**
      * 判断当前请求是否跳过该过滤器。
      *
@@ -44,6 +47,7 @@ public class TokenRedisValidationFilter extends OncePerRequestFilter {
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
         return permitAllMatcher.matches(request);
     }
+
     /**
      * 执行 token 二次校验。
      *
@@ -58,6 +62,11 @@ public class TokenRedisValidationFilter extends OncePerRequestFilter {
      * 直接返回 401，不再继续执行后续过滤器链。
      * </p>
      *
+     * <p>
+     * 如果请求头 TENANT-ID 与 JWT 中的 tenant_id 不一致，
+     * 说明当前请求存在跨租户访问风险，直接返回 403。
+     * </p>
+     *
      * @param request 当前 HTTP 请求
      * @param response 当前 HTTP 响应
      * @param filterChain 过滤器链
@@ -68,6 +77,11 @@ public class TokenRedisValidationFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication instanceof JwtAuthenticationToken jwtAuthentication) {
+            if (isTenantMismatch(request, jwtAuthentication)) {
+                writeJsonResponse(response, HttpStatus.FORBIDDEN, SecurityConstants.AUTH_ACCESS_DENIED_MESSAGE);
+                return;
+            }
+
             String tokenValue = jwtAuthentication.getToken().getTokenValue();
 
             OAuth2Authorization authorization = authorizationService.findByToken(
@@ -76,13 +90,43 @@ public class TokenRedisValidationFilter extends OncePerRequestFilter {
             );
 
             if (authorization == null) {
-                response.setStatus(HttpStatus.UNAUTHORIZED.value());
-                response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-                response.setCharacterEncoding(StandardCharsets.UTF_8.name());
-                response.getWriter().write("{\"code\":401,\"message\":\""+ SecurityConstants.AUTH_TOKEN_INVALID_MESSAGE+"\",\"data\":null}");
+                writeJsonResponse(response, HttpStatus.UNAUTHORIZED, SecurityConstants.AUTH_TOKEN_INVALID_MESSAGE);
                 return;
             }
         }
         filterChain.doFilter(request, response);
+    }
+
+    /**
+     * 判断请求租户与 token 租户是否不一致。
+     *
+     * @param request 当前 HTTP 请求
+     * @param jwtAuthentication JWT 认证信息
+     * @return true 表示租户不一致，false 表示租户一致或无法判断
+     */
+    private boolean isTenantMismatch(HttpServletRequest request, JwtAuthenticationToken jwtAuthentication) {
+        String requestTenantId = request.getHeader(AuthTokenCustomizer.PARAM_TENANT_ID);
+        if (!StringUtils.hasText(requestTenantId)) {
+            requestTenantId = request.getParameter(AuthTokenCustomizer.PARAM_TENANT_ID);
+        }
+        String tokenTenantId = jwtAuthentication.getToken().getClaimAsString(AuthTokenCustomizer.CLAIM_TENANT_ID);
+
+        return StringUtils.hasText(requestTenantId)
+                && StringUtils.hasText(tokenTenantId)
+                && !requestTenantId.trim().equals(tokenTenantId.trim());
+    }
+
+    /**
+     * 写出统一 JSON 错误响应。
+     *
+     * @param response 当前 HTTP 响应
+     * @param status HTTP 状态码
+     * @param message 错误消息
+     */
+    private void writeJsonResponse(HttpServletResponse response, HttpStatus status, String message) throws IOException {
+        response.setStatus(status.value());
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        response.getWriter().write("{\"code\":" + status.value() + ",\"message\":\"" + message + "\",\"data\":null}");
     }
 }
