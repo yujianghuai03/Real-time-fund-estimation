@@ -15,7 +15,7 @@ mybatis-plus:
     map-underscore-to-camel-case: true
   global-config:
     db-config:
-      id-type: assign_uuid
+      id-type: assign_id
 
 app:
   security:
