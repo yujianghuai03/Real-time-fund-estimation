@@ -23,6 +23,7 @@ import com.yujianghuai.auth.support.handler.AuthSuccessHandler;
 import com.yujianghuai.auth.support.password.OAuth2ResourceOwnerPasswordAuthenticationConverter;
 import com.yujianghuai.auth.support.password.OAuth2ResourceOwnerPasswordAuthenticationProvider;
 import com.yujianghuai.common.constant.SecurityConstants;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -68,13 +69,18 @@ import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.util.StringUtils;
 
+import java.nio.charset.StandardCharsets;
+import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.*;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
@@ -85,6 +91,13 @@ import java.util.UUID;
 @EnableMethodSecurity
 @EnableConfigurationProperties(SecurityPermitAllProperties.class)
 public class AuthorizationServerConfiguration {
+
+    @Value("${app.security.jwt.public-key:}")
+    private String jwtPublicKey;
+
+    @Value("${app.security.jwt.private-key:}")
+    private String jwtPrivateKey;
+
     @Bean
     public SecurityPermitAllMatcher securityPermitAllMatcher(SecurityPermitAllProperties properties) {
         return new SecurityPermitAllMatcher(properties);
@@ -136,9 +149,7 @@ public class AuthorizationServerConfiguration {
                                 new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)
                         ))
                 .oauth2ResourceServer(resourceServer -> resourceServer
-                        .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter))) //JWT认证
-        ;
-
+                        .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)));
 
         return http.build();
     }
@@ -186,8 +197,8 @@ public class AuthorizationServerConfiguration {
                         }))
                 .formLogin(AbstractHttpConfigurer::disable)
                 .oauth2ResourceServer(resourceServer -> resourceServer
-                        .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)))//JWT认证
-                .addFilterAfter(new TokenRedisValidationFilter(authorizationService,securityPermitAllMatcher), BearerTokenAuthenticationFilter.class) //Redis 认证
+                        .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)))
+                .addFilterAfter(new TokenRedisValidationFilter(authorizationService, securityPermitAllMatcher), BearerTokenAuthenticationFilter.class)
                 .build();
     }
 
@@ -259,7 +270,7 @@ public class AuthorizationServerConfiguration {
 
     @Bean
     public JWKSource<SecurityContext> jwkSource() {
-        RSAKey rsaKey = generateRsa();
+        RSAKey rsaKey = loadConfiguredRsaKey();
         JWKSet jwkSet = new JWKSet(rsaKey);
         return new ImmutableJWKSet<>(jwkSet);
     }
@@ -296,6 +307,39 @@ public class AuthorizationServerConfiguration {
         http.authenticationProvider(new OAuth2ResourceOwnerEmailAuthenticationProvider(
                 authenticationManager, authorizationService, tokenGenerator,
                 authUserDetailsService, emailCodeAuthenticationService));
+    }
+
+    private RSAKey loadConfiguredRsaKey() {
+        try {
+            if (StringUtils.hasText(jwtPublicKey) && StringUtils.hasText(jwtPrivateKey)) {
+                KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+
+                byte[] publicKeyBytes = Base64.getDecoder().decode(normalizePem(jwtPublicKey));
+                byte[] privateKeyBytes = Base64.getDecoder().decode(normalizePem(jwtPrivateKey));
+
+                RSAPublicKey publicKey = (RSAPublicKey) keyFactory.generatePublic(new X509EncodedKeySpec(publicKeyBytes));
+                RSAPrivateKey privateKey = (RSAPrivateKey) keyFactory.generatePrivate(new PKCS8EncodedKeySpec(privateKeyBytes));
+
+                return new RSAKey.Builder(publicKey)
+                        .privateKey(privateKey)
+                        .keyID(UUID.nameUUIDFromBytes(publicKeyBytes).toString())
+                        .build();
+            }
+
+            return generateRsa();
+        } catch (Exception exception) {
+            throw new IllegalStateException("Unable to load RSA key pair", exception);
+        }
+    }
+
+    private String normalizePem(String pem) {
+        return pem
+                .replace("-----BEGIN PUBLIC KEY-----", "")
+                .replace("-----END PUBLIC KEY-----", "")
+                .replace("-----BEGIN PRIVATE KEY-----", "")
+                .replace("-----END PRIVATE KEY-----", "")
+                .replaceAll("\\s", "")
+                .trim();
     }
 
     private RSAKey generateRsa() {
