@@ -15,10 +15,16 @@ mybatis-plus:
     map-underscore-to-camel-case: true
   global-config:
     db-config:
-      id-type: auto
+      id-type: assign_uuid
 
 app:
   security:
+    jwt:
+      # JWT 密钥编号，会写入 JWT Header 的 kid，方便网关通过 JWKS 找到对应公钥。
+      key-id: ${JWT_KEY_ID:yujianghuai-default-key}
+      # 生产环境建议通过环境变量覆盖。未配置时使用代码内置默认密钥。
+      public-key: ${JWT_PUBLIC_KEY:}
+      private-key: ${JWT_PRIVATE_KEY:}
     permit-all:
       paths:
         - /oauth2/**
