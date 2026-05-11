@@ -18,6 +18,19 @@ mybatis-plus:
       id-type: auto
 
 app:
+  security:
+    permit-all:
+      paths:
+        - /oauth2/**
+        - /admin-api/email/verification-code
+        - /v3/api-docs/**
+        - /swagger-ui/**
+        - /swagger-ui.html
+        - /actuator/**
+        - /error
+      methods:
+        OPTIONS:
+          - /**
   email:
     host: ${APP_EMAIL_HOST:smtp.qq.com}
     port: ${APP_EMAIL_PORT:465}

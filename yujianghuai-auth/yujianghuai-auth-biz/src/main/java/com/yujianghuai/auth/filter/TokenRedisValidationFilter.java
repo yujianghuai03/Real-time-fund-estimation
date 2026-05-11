@@ -1,5 +1,7 @@
 package com.yujianghuai.auth.filter;
 
+import com.yujianghuai.auth.config.SecurityPermitAllProperties;
+import com.yujianghuai.auth.matcher.SecurityPermitAllMatcher;
 import com.yujianghuai.common.constant.SecurityConstants;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -26,10 +28,16 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class TokenRedisValidationFilter  extends OncePerRequestFilter {
     private final OAuth2AuthorizationService authorizationService;
+
+    private final SecurityPermitAllMatcher permitAllMatcher;
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
+        if (!permitAllMatcher.matches(request)){
+            return;
+        }
+
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication instanceof JwtAuthenticationToken jwtAuthentication) {
             String tokenValue = jwtAuthentication.getToken().getTokenValue();

@@ -7,6 +7,7 @@ import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
 import com.yujianghuai.auth.filter.TokenRedisValidationFilter;
 import com.yujianghuai.auth.mapper.SysOauthClientMapper;
+import com.yujianghuai.auth.matcher.SecurityPermitAllMatcher;
 import com.yujianghuai.auth.repository.RedisOAuth2AuthorizationService;
 import com.yujianghuai.auth.repository.SysOauthRegisteredClientRepository;
 import com.yujianghuai.auth.service.AuthLoginPermissionService;
@@ -22,6 +23,7 @@ import com.yujianghuai.auth.support.handler.AuthSuccessHandler;
 import com.yujianghuai.auth.support.password.OAuth2ResourceOwnerPasswordAuthenticationConverter;
 import com.yujianghuai.auth.support.password.OAuth2ResourceOwnerPasswordAuthenticationProvider;
 import com.yujianghuai.common.constant.SecurityConstants;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -78,7 +80,12 @@ import java.util.UUID;
 
 @Configuration
 @EnableMethodSecurity
+@EnableConfigurationProperties(SecurityPermitAllProperties.class)
 public class AuthorizationServerConfiguration {
+    @Bean
+    public SecurityPermitAllMatcher securityPermitAllMatcher(SecurityPermitAllProperties properties) {
+        return new SecurityPermitAllMatcher(properties);
+    }
 
     @Bean
     @Order(Ordered.HIGHEST_PRECEDENCE)
@@ -138,20 +145,21 @@ public class AuthorizationServerConfiguration {
     public SecurityFilterChain applicationSecurityFilterChain(
             HttpSecurity http,
             JwtAuthenticationConverter jwtAuthenticationConverter,
-            OAuth2AuthorizationService authorizationService) throws Exception {
+            OAuth2AuthorizationService authorizationService,
+            SecurityPermitAllProperties permitAllProperties,
+            SecurityPermitAllMatcher securityPermitAllMatcher) throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(registry -> registry
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/admin-api/email/verification-code").permitAll()
-                        .requestMatchers(
-                                "/oauth2/**",
-                                "/v3/api-docs/**",
-                                "/swagger-ui/**",
-                                "/swagger-ui.html",
-                                "/actuator/**",
-                                "/error").permitAll()
-                        .anyRequest().authenticated())
+                .authorizeHttpRequests(registry -> {
+                    permitAllProperties.getMethods().forEach((method, paths) -> {
+                        HttpMethod httpMethod = HttpMethod.valueOf(method.toUpperCase());
+                        registry.requestMatchers(httpMethod, paths.toArray(String[]::new)).permitAll();
+                    });
+
+                    registry.requestMatchers(permitAllProperties.getPaths().toArray(String[]::new)).permitAll();
+
+                    registry.anyRequest().authenticated();
+                })
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint((request, response, authException) -> {
                             response.setStatus(HttpStatus.UNAUTHORIZED.value());
@@ -168,7 +176,7 @@ public class AuthorizationServerConfiguration {
                 .formLogin(AbstractHttpConfigurer::disable)
                 .oauth2ResourceServer(resourceServer -> resourceServer
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)))//JWT认证
-                .addFilterAfter(new TokenRedisValidationFilter(authorizationService), BearerTokenAuthenticationFilter.class) //Redis 认证
+                .addFilterAfter(new TokenRedisValidationFilter(authorizationService,securityPermitAllMatcher), BearerTokenAuthenticationFilter.class) //Redis 认证
                 .build();
     }
 
