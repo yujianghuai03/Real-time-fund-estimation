@@ -94,8 +94,7 @@ public class AuthorizationServerConfiguration {
             EmailCodeAuthenticationService emailCodeAuthenticationService,
             RegisteredClientRepository registeredClientRepository,
             PasswordEncoder passwordEncoder,
-            JwtAuthenticationConverter jwtAuthenticationConverter,
-            TokenRedisValidationFilter tokenRedisValidationFilter) throws Exception {
+            JwtAuthenticationConverter jwtAuthenticationConverter) throws Exception {
 
         OAuth2AuthorizationServerConfiguration.applyDefaultSecurity(http);
         OAuth2AuthorizationServerConfigurer authorizationServerConfigurer =
@@ -128,7 +127,6 @@ public class AuthorizationServerConfiguration {
                         ))
                 .oauth2ResourceServer(resourceServer -> resourceServer
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter))) //JWT认证
-                .addFilterAfter(new TokenRedisValidationFilter(authorizationService), BearerTokenAuthenticationFilter.class) //Redis 认证
         ;
 
 
@@ -140,7 +138,7 @@ public class AuthorizationServerConfiguration {
     public SecurityFilterChain applicationSecurityFilterChain(
             HttpSecurity http,
             JwtAuthenticationConverter jwtAuthenticationConverter,
-            TokenRedisValidationFilter tokenRedisValidationFilter) throws Exception {
+            OAuth2AuthorizationService authorizationService) throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(registry -> registry
@@ -170,6 +168,7 @@ public class AuthorizationServerConfiguration {
                 .formLogin(AbstractHttpConfigurer::disable)
                 .oauth2ResourceServer(resourceServer -> resourceServer
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)))//JWT认证
+                .addFilterAfter(new TokenRedisValidationFilter(authorizationService), BearerTokenAuthenticationFilter.class) //Redis 认证
                 .build();
     }
 
