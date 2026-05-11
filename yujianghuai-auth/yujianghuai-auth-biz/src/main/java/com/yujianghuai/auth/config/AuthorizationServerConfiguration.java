@@ -22,6 +22,7 @@ import com.yujianghuai.auth.support.handler.AuthSuccessHandler;
 import com.yujianghuai.auth.support.password.OAuth2ResourceOwnerPasswordAuthenticationConverter;
 import com.yujianghuai.auth.support.password.OAuth2ResourceOwnerPasswordAuthenticationProvider;
 import com.yujianghuai.common.constant.SecurityConstants;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
@@ -127,7 +128,7 @@ public class AuthorizationServerConfiguration {
                         ))
                 .oauth2ResourceServer(resourceServer -> resourceServer
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter))) //JWT认证
-                .addFilterAfter(tokenRedisValidationFilter, BearerTokenAuthenticationFilter.class) //Redis 认证
+                .addFilterAfter(new TokenRedisValidationFilter(authorizationService), BearerTokenAuthenticationFilter.class) //Redis 认证
         ;
 
 
@@ -169,7 +170,6 @@ public class AuthorizationServerConfiguration {
                 .formLogin(AbstractHttpConfigurer::disable)
                 .oauth2ResourceServer(resourceServer -> resourceServer
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)))//JWT认证
-                .addFilterAfter(tokenRedisValidationFilter, BearerTokenAuthenticationFilter.class) //Redis 认证
                 .build();
     }
 

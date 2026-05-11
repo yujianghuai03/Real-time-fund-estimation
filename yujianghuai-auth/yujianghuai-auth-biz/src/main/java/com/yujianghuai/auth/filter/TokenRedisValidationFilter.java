@@ -14,7 +14,6 @@ import org.springframework.security.oauth2.server.authorization.OAuth2Authorizat
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService;
 import org.springframework.security.oauth2.server.authorization.OAuth2TokenType;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
-import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -23,7 +22,7 @@ import java.io.IOException;
  * @author yxh
  * @date 2026/5/11 14:21
  */
-@Component
+
 @RequiredArgsConstructor
 public class TokenRedisValidationFilter  extends OncePerRequestFilter {
     private final OAuth2AuthorizationService authorizationService;
@@ -47,5 +46,6 @@ public class TokenRedisValidationFilter  extends OncePerRequestFilter {
                 return;
             }
         }
+        filterChain.doFilter(request, response);
     }
 }
