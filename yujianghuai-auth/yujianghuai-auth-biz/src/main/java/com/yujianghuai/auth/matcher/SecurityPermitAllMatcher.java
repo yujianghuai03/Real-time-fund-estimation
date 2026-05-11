@@ -6,6 +6,8 @@ import org.springframework.util.AntPathMatcher;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 
 /**
@@ -75,8 +77,15 @@ public class SecurityPermitAllMatcher {
         }
 
         // 获取当前请求方式对应的放行路径，例如 GET、POST、PUT、DELETE
-        List<String> methodPaths = properties.getMethods()
-                .getOrDefault(method.toUpperCase(), Collections.emptyList());
+        Map<String, List<String>> methods = properties.getMethods();
+        if (methods == null || methods.isEmpty()) {
+            return false;
+        }
+
+        List<String> methodPaths = methods.getOrDefault(
+                method.toUpperCase(Locale.ROOT),
+                Collections.emptyList()
+        );
 
         // 匹配当前请求方式下配置的放行路径
         return matches(methodPaths, requestUri);
